@@ -9,7 +9,9 @@ build_search_index = false
 
 # el theme que elejimo
 theme = "after-dark"
-highlight_theme = "charcoal"
+# highlight_theme = "charcoal"
+# highlight_theme = "base16-ocean-dark"
+highlight_theme = "ayu-dark"
 
 taxonomies = [
     # You can enable/disable RSS
