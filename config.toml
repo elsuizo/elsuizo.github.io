@@ -7,11 +7,8 @@ compile_sass = true
 # Whether to build a search index to be used later on by a JavaScript library
 build_search_index = false
 
-# el theme que elejimo
+
 theme = "after-dark"
-# highlight_theme = "charcoal"
-# highlight_theme = "base16-ocean-dark"
-highlight_theme = "ayu-dark"
 
 taxonomies = [
     # You can enable/disable RSS
@@ -23,6 +20,13 @@ taxonomies = [
 # Whether to do syntax highlighting
 # Theme can be customised by setting the `highlight_theme` variable to a theme supported by Zola
 highlight_code = true
+# highlight_theme = "ayu-dark"
+highlight_theme = "boron"
 
 [extra]
-# Put all your custom variables here
+after_dark_menu = [
+    {url = "$BASE_URL", name = "Home"},
+    {url = "$BASE_URL/categories", name = "Categories"},
+    {url = "$BASE_URL/tags", name = "Tags"},
+    {url = "https://github.com/elsuizo", name = "Martin Noblia github"},
+]
