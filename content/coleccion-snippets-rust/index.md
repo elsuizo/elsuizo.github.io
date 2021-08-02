@@ -6,7 +6,7 @@ categories = ["article"]
 tags = ["Rust"]
 +++
 
-# Los mejores snippets de Rust comentados
+# Los mejores snippets de Rust
 
 Los siguientes snippets de codigo los fui recolectando a lo largo del poco tiempo
 que llevo en el lenguaje. Su orden de aparicion no significa nada en ninguna
@@ -15,6 +15,8 @@ metrica, esto es solo exposicion de arte y elegancia.
 ## Snippet 1
 
 El famoso macro `matches!` en accion:
+
+[`matches doc`](https://doc.rust-lang.org/std/macro.matches.html)
 
 ```rust
 enum Foo {
