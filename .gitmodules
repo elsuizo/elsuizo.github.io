@@ -1,0 +1,3 @@
+[submodule "themes/after-dark-suizo"]
+	path = themes/after-dark-suizo
+	url = git@github.com:elsuizo/after-dark-suizo.git
