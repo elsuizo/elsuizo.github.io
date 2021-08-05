@@ -73,7 +73,7 @@ Donde:
    que esta entre "" y poner el mensaje en nuestro idioma(aunque no estoy de acuerdo
    de programar en español...solo por esta vez)
 
-```rust
+```txt
 fn main() {
     println!("Hola Mundo!!!");
 }
@@ -81,7 +81,7 @@ fn main() {
 
 Y para correr el codigo solo tenemos que hacer:
 
-```bash
+```txt
 cargo run
 ```
 

@@ -52,7 +52,7 @@ donde esta el archivo de configuracion):
 
 Si todo salio bien vamos a obtener un mensaje como:
 
-```text
+```txt
 navigation-robot project generated!!!
 ```
 
@@ -65,7 +65,7 @@ publique "Hola mundo" en un topic que le asignemos por ejemplo `"chatter"`
 
 Para ello necesitamos las siguientes lineas de codigo:
 
-```rust
+```txt
 use env_logger;
 use rosrust;
 
