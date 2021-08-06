@@ -18,7 +18,7 @@ El famoso macro `matches!` en accion:
 
 [`matches doc`](https://doc.rust-lang.org/std/macro.matches.html)
 
-```txt
+```rust
 enum Foo {
     Bar(u32),
     Baz
@@ -50,7 +50,7 @@ poderoso.
 
 El primer ejemplo es una implementacion del `trait` `TryFrom` para una `struct`
 
-```txt
+```rust
 struct Color {
    red: u8,
    green: u8,
@@ -65,7 +65,7 @@ de cada rama del `mathc` tenemos un alias el cual verifica si el valor esta
 en un cierto rango (en este caso queremos que el valor entre en un `u8` por eso
 el rango es `0..=255`)
 
-```txt
+```rust
 impl TryFrom<(i16, i16, i16)> for Color {
     type Error = Box<dyn error::Error>;
     fn try_from(tuple: (i16, i16, i16)) -> Result<Self, Self::Error> {
@@ -86,7 +86,7 @@ podemos usar cualquier expresion para ello. En el siguiente ejemplo usamos un `m
 para asignar los valores de cada color en una funcion que calcula el falso color
 a una imagen:
 
-```txt
+```rust
 /// False color of an image
 fn false_color(pixel: image::Rgb<u8>) -> image::Rgb<u8> {
     let m = 255.0 / 43.0;
@@ -112,5 +112,43 @@ fn false_color(pixel: image::Rgb<u8>) -> image::Rgb<u8> {
     };
 
     image::Rgb([r as u8, g as u8, b as u8])
+}
+```
+
+## Snippets de notacion
+
+En Rust podemos desestructurar casi cualquier expresion para nuestra conveniencia
+por ejemplo queremos hacer una funcion que tome un array de tres elementos
+y que sume el primer y el ultimo elemento:
+
+```rust
+fn add_first_last([x, _, y]: [i32; 3]) -> i32 {
+    x + y
+}
+```
+
+Supongamos que tenemos la siguiente `struct Foo`, tenemos un array de `Foo`s y
+queremos iterar solo sobre los elementos `a` de cada `Foo`
+
+```rust
+struct Foo {
+    a: u32,
+    b: &'static str,
+    c: &'static str
+}
+
+// constructor de Foo
+impl Foo {
+    fn new(a: u32, b: &'static str, c: &'static str) -> Self {
+        Self {a, b, c}
+    }
+}
+
+fn main() {
+    let data = [Foo::new(3, "one", "two"), Foo::new(7, "two", "tree"), Foo::new(37, "l", "pi")];
+
+    for Foo{a, ..} in data {
+        println!("a: {}", a);
+    }
 }
 ```

@@ -65,7 +65,7 @@ publique "Hola mundo" en un topic que le asignemos por ejemplo `"chatter"`
 
 Para ello necesitamos las siguientes lineas de codigo:
 
-```txt
+```rust
 use env_logger;
 use rosrust;
 

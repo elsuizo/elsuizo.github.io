@@ -31,7 +31,7 @@ obstaculo mas cercano.
 Para que podamos comparar las implementaciones, voy a poner aca la implementacion
 en `Cpp`.
 
-```txt
+```cpp
 #include <vector>
 #include <string>
 #include "ros/ros.h"
@@ -125,7 +125,7 @@ tenes que ver el tutorial oficial sobre mensajes)
 
 la implementacion en Rust es la siguiente:
 
-```txt
+```rust
 use env_logger;
 use rosrust;
 use rosrust::Publisher;
@@ -221,7 +221,7 @@ con la linea de codigo:
 Y como todo lo que definimos tiene su type bien establecido podemos incorporarlo
 al codigo sin problemas:
 
-```txt
+```rust
 struct LocationMonitor {
     landmarks: Vec<Landmark>,
     publisher: Publisher<LandmarkDistance>
@@ -233,7 +233,7 @@ threads para compartir informacion y dado que el lenguaje nos garantiza que es
 seguro no debemos preocuparnos por cosas que pasan en otros lenguajes como por
 ejemplo `data races`
 
-```txt
+```rust
 let subscriber_info = rosrust::subscribe("odom", 2, move |msg: rosrust_msg::nav_msgs::Odometry| {
   // Callback for handling received messages
   tx.send(msg).unwrap();
@@ -243,7 +243,7 @@ let subscriber_info = rosrust::subscribe("odom", 2, move |msg: rosrust_msg::nav_
 Aqui enviamos el `msg` a traves de un thread cada vez que recibimos el mismo en
 el topic `/odom`. Como contrapartida hacemos la recepcion de manera segura con
 
-```txt
+```rust
 if let Ok(msg) = rx.recv_timeout(Duration::from_millis(10)) {
    let x = msg.pose.pose.position.x;
    let y = msg.pose.pose.position.y;

@@ -57,7 +57,7 @@ Si todo fue bien obtenemos el mensaje:
 
 en la misma tenemos los siguientes archivos:
 
-```text
+```txt
 .
 ├── Cargo.toml
 └── src
@@ -73,7 +73,7 @@ Donde:
    que esta entre "" y poner el mensaje en nuestro idioma(aunque no estoy de acuerdo
    de programar en español...solo por esta vez)
 
-```txt
+```rust
 fn main() {
     println!("Hola Mundo!!!");
 }
@@ -81,7 +81,7 @@ fn main() {
 
 Y para correr el codigo solo tenemos que hacer:
 
-```txt
+```bash
 cargo run
 ```
 
