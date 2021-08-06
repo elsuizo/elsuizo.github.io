@@ -42,7 +42,7 @@ fn main() {
 }
 ```
 
-## Snippets con `mathc`
+## Snippets con `match`
 
 El famoso `match` de Rust. Es una de las construcciones mas potentes del lenguaje
 en mi humilde opinion. Lo podriamos catalogar como un `switch` pero mucho mas
@@ -61,7 +61,7 @@ struct Color {
 Entonces con el siguiente codigo implementamos `TryFrom` para una `tupla` `(i16, i16, i16)`
 
 La magia de esto es que en el lado del `pattern` que es siempre a la izquierda
-de cada rama del `mathc` tenemos un alias el cual verifica si el valor esta
+de cada rama del `match` tenemos un alias el cual verifica si el valor esta
 en un cierto rango (en este caso queremos que el valor entre en un `u8` por eso
 el rango es `0..=255`)
 
@@ -81,7 +81,7 @@ impl TryFrom<(i16, i16, i16)> for Color {
 }
 ```
 
-Podemos utilizar un match en la definicion de una variable ya que en el lenguaje
+Podemos utilizar un `match` en la definicion de una variable ya que en el lenguaje
 podemos usar cualquier expresion para ello. En el siguiente ejemplo usamos un `match`
 para asignar los valores de cada color en una funcion que calcula el falso color
 a una imagen:

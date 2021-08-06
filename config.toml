@@ -16,9 +16,9 @@ taxonomies = [
 ]
 
 [markdown]
-highlight_code = true
+highlight_code = false
 highlight_theme = "gray-matter-dark"
-# highlight_theme = "solarized-dark"
+# highlight_theme = "Tomorrow"
 # highlight_theme = "boron"
 
 [extra]
