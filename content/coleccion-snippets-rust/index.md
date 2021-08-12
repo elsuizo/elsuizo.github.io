@@ -152,3 +152,29 @@ fn main() {
     }
 }
 ```
+
+## Snippets con iteradores
+
+Rust utiliza iteradores como elemento para iterar sobre colecciones de
+elementos esto hace que por ejemplo el compilador sepa de antemano cuando debe
+terminar la iteracion y asi no tener que realizar el chequeo en cada una de las
+mismas como si pasa por ejemplo en `C`
+
+`for(int i=0; i < 10; i++)`
+
+Por ejemplo supongamos que queremos implementar el producto punto para dos
+vectores o arrays de cualquier `length`
+
+```rust
+pub fn dot(slice1: &[f32], slice2: &[f32]) -> f32 {
+    slice1.iter().zip(slice2).map(|(&a, &b)| a * b).sum()
+}
+
+fn main() {
+    let a = [1.0, 1.0, 3.0, 4.0];
+    let b = [4.0, 2.0, 1.0, 7.0];
+    let result = dot(&a, &b);
+    println!("result: {}", result);
+}
+```
+
