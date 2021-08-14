@@ -153,6 +153,34 @@ fn main() {
 }
 ```
 
+El siguiente snippet lo vi en el siguiente blog(que les recomiendo)
+
+
+[`blog`](https://adventures.michaelfbryan.com/posts/daily/slice-patterns/?utm_source=user-forums&utm_medium=social&utm_campaign=daily-rust-slice-patterns)
+
+```rust
+fn word_is_palindrome(word: &str) -> bool {
+    let letters: Vec<_> = word.chars().collect();
+
+    is_palindrome(&letters)
+}
+
+fn is_palindrome(items: &[char]) -> bool {
+    match items {
+        [first, middle @ .., last] => first == last && is_palindrome(middle),
+        [] | [_] => true,
+    }
+}
+
+fn main() {
+    println!("is palindrome: {:?}", word_is_palindrome("abbbba"));
+}
+```
+
+Utiliza patrones de "matcheo" y recursividad, notemos que cuando hacemos esto
+sobre `slices` debemos tener en cuenta los casos de `slice` vacio `[]` y cualquier
+otro valor con `[_]`
+
 ## Snippets con iteradores
 
 Rust utiliza iteradores como elemento para iterar sobre colecciones de
