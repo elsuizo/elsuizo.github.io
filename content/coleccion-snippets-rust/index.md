@@ -1,6 +1,6 @@
 +++
 title = "Coleccion de snippets cools de Rust"
-date = 2021-07-27
+date = 2021-11-02
 [taxonomies]
 categories = ["article"]
 tags = ["Rust"]
@@ -205,4 +205,21 @@ fn main() {
     println!("result: {}", result);
 }
 ```
+
+## Snippets con alias
+
+Desde la version 1.56 podemos combinar "bindings" `@` con "bindings" patrones o
+sea que podemos darle un nombre a un type y a cierta parte de ello por ejemplo:
+
+```rust
+fn main() {
+    let array @ [first_element, .., last_element] = [1, 2, 3, 4, 5, 6, 7];
+    println!("array: {:?}", array);
+    println!("first_element: {}", first_element);
+    println!("last_element: {}", last_element);
+}
+```
+
+Donde le damos un nombre al array a su primer elemento y a su ultimo elemento
+todo en la misma linea de codigo
 
