@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+
+      
+          <link rel="stylesheet" href="https://elsuizo.github.io/site.css">
+      
+
+      
+      
+    </head>
+
+    <body class="hack dark main container">
+        
+    
+        
+                
+                    <header>
+                        <nav itemscope itemtype="http://schema.org/SiteNavigationElement">
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;elsuizo.github.io&#x2F;">
+                                <span itemprop="name">Home
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;elsuizo.github.io&#x2F;&#x2F;categories">
+                                <span itemprop="name">Categories
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;elsuizo.github.io&#x2F;&#x2F;tags">
+                                <span itemprop="name">Tags
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;github.com&#x2F;elsuizo">
+                                <span itemprop="name">Martin Noblia github
+                                </span></a>
+                        
+                        </nav>
+                    </header>
+                
+            
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Monitor de obstaculos para ROS con Rust</h1>
+        <span class="muted">
+    <svg style="margin-bottom:-3px" class="i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>5 minute read</span>
+    <svg style="margin-bottom: -3px" class="i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    Published: 2021-07-31
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <h1 id="monitoreando-obstaculos">Monitoreando obstaculos<a class="zola-anchor" href="#monitoreando-obstaculos" aria-label="Anchor link for: monitoreando-obstaculos">🔗</a></h1>
+<p>Esta es una traduccion a Rust de una implementacion hecha en <code>Cpp</code> por Justin Huang</p>
+<p>aqui les dejo el video:</p>
+<div >
+    <iframe
+        src="https://www.youtube.com/embed/2Cmdu6mkxD0"
+        webkitallowfullscreen
+        mozallowfullscreen
+        allowfullscreen>
+    </iframe>
+</div>
+<p>Me parecio interesante porque es como un &quot;hola mundo&quot; un poco mas avanzado.
+Ademas es una linda oportunidad para probar si podemos generar la misma
+ergonomia con Rust.</p>
+<h2 id="definicion-del-problema">Definicion del problema<a class="zola-anchor" href="#definicion-del-problema" aria-label="Anchor link for: definicion-del-problema">🔗</a></h2>
+<p>Tenemos nuestro robot que publica su posicion a traves del topic <code>/odom</code> y
+tenemos de antemano las posiciones de los obstaculos que estan en el mapa donde
+transita el robot, entonces vamos a generar un nodo que monitorea cual es el
+obstaculo mas cercano.</p>
+<h2 id="solucion-del-problema-en-cpp">Solucion del problema en Cpp<a class="zola-anchor" href="#solucion-del-problema-en-cpp" aria-label="Anchor link for: solucion-del-problema-en-cpp">🔗</a></h2>
+<p>Para que podamos comparar las implementaciones, voy a poner aca la implementacion
+en <code>Cpp</code>.</p>
+<pre style="background-color:#282c34;">
+<code class="language-cpp" data-lang="cpp"><span style="color:#c678dd;">#include </span><span style="color:#98c379;">&lt;vector&gt;
+</span><span style="color:#c678dd;">#include </span><span style="color:#98c379;">&lt;string&gt;
+</span><span style="color:#c678dd;">#include </span><span style="color:#98c379;">&quot;ros/ros.h&quot;
+</span><span style="color:#c678dd;">#include </span><span style="color:#98c379;">&quot;nav_msgs/Odometry.h&quot;
+</span><span style="color:#c678dd;">#include </span><span style="color:#98c379;">&quot;location_monitor/LandmarkDistance.h&quot;
+</span><span style="color:#c678dd;">using</span><span style="color:#abb2bf;"> location_monitor::LandmarkDistance;
+
+</span><span style="color:#c678dd;">struct </span><span style="color:#abb2bf;">Landmark {
+   std::string name;
+   </span><span style="color:#c678dd;">double</span><span style="color:#abb2bf;"> x;
+   </span><span style="color:#c678dd;">double</span><span style="color:#abb2bf;"> y;
+};
+
+</span><span style="color:#c678dd;">struct </span><span style="color:#abb2bf;">LandmarkMonitor {
+   std::vector&lt;Landmark&gt; landmarks;
+
+   ros::Publisher landmark_publisher;
+
+   </span><span style="color:#61afef;">LandmarkMonitor</span><span style="color:#abb2bf;">(</span><span style="color:#c678dd;">const</span><span style="color:#abb2bf;"> ros::Publisher</span><span style="color:#56b6c2;">&amp; </span><span style="font-style:italic;color:#e06c75;">landmark_pub</span><span style="color:#abb2bf;">): </span><span style="color:#e06c75;">landmarks</span><span style="color:#abb2bf;">(), </span><span style="color:#e06c75;">landmark_publisher</span><span style="color:#abb2bf;">(landmark_pub) {
+      </span><span style="color:#e06c75;">init_landmarks</span><span style="color:#abb2bf;">();
+   }
+
+   </span><span style="color:#c678dd;">double </span><span style="color:#61afef;">get_distance</span><span style="color:#abb2bf;">(Landmark </span><span style="font-style:italic;color:#e06c75;">landmark</span><span style="color:#abb2bf;">, </span><span style="color:#c678dd;">double </span><span style="font-style:italic;color:#e06c75;">x</span><span style="color:#abb2bf;">, </span><span style="color:#c678dd;">double </span><span style="font-style:italic;color:#e06c75;">y</span><span style="color:#abb2bf;">) {
+      </span><span style="color:#c678dd;">double</span><span style="color:#abb2bf;"> diff_x </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> landmark.</span><span style="color:#e06c75;">x </span><span style="color:#56b6c2;">-</span><span style="color:#abb2bf;"> x;
+      </span><span style="color:#c678dd;">double</span><span style="color:#abb2bf;"> diff_y </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> landmark.</span><span style="color:#e06c75;">y </span><span style="color:#56b6c2;">-</span><span style="color:#abb2bf;"> y;
+      </span><span style="color:#c678dd;">return </span><span style="color:#abb2bf;">std::</span><span style="color:#56b6c2;">sqrt</span><span style="color:#abb2bf;">(diff_x </span><span style="color:#56b6c2;">*</span><span style="color:#abb2bf;"> diff_x </span><span style="color:#56b6c2;">+</span><span style="color:#abb2bf;"> diff_y </span><span style="color:#56b6c2;">*</span><span style="color:#abb2bf;"> diff_y);
+   }
+
+   LandmarkDistance </span><span style="color:#61afef;">find_closest</span><span style="color:#abb2bf;">(</span><span style="color:#c678dd;">double </span><span style="font-style:italic;color:#e06c75;">x</span><span style="color:#abb2bf;">, </span><span style="color:#c678dd;">double </span><span style="font-style:italic;color:#e06c75;">y</span><span style="color:#abb2bf;">) {
+      LandmarkDistance result;
+      result.</span><span style="color:#e06c75;">distance </span><span style="color:#56b6c2;">= -</span><span style="color:#d19a66;">1</span><span style="color:#abb2bf;">;
+      </span><span style="color:#c678dd;">for </span><span style="color:#abb2bf;">(size_t i </span><span style="color:#56b6c2;">= </span><span style="color:#d19a66;">0</span><span style="color:#abb2bf;">; i </span><span style="color:#56b6c2;">&lt;</span><span style="color:#abb2bf;"> landmarks.</span><span style="color:#e06c75;">size</span><span style="color:#abb2bf;">(); </span><span style="color:#56b6c2;">++</span><span style="color:#abb2bf;">i) {
+         </span><span style="color:#c678dd;">const</span><span style="color:#abb2bf;"> Landmark</span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;"> landmark </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> landmarks[i];
+         </span><span style="color:#c678dd;">double</span><span style="color:#abb2bf;"> distance </span><span style="color:#56b6c2;">= </span><span style="color:#e06c75;">get_distance</span><span style="color:#abb2bf;">(landmark, x, y);
+         </span><span style="color:#c678dd;">if</span><span style="color:#abb2bf;">(result.</span><span style="color:#e06c75;">distance </span><span style="color:#56b6c2;">&lt; </span><span style="color:#d19a66;">0 </span><span style="color:#56b6c2;">||</span><span style="color:#abb2bf;"> distance </span><span style="color:#56b6c2;">&lt;</span><span style="color:#abb2bf;"> result.</span><span style="color:#e06c75;">distance</span><span style="color:#abb2bf;">) {
+            result.</span><span style="color:#e06c75;">name </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> landmark.</span><span style="color:#e06c75;">name</span><span style="color:#abb2bf;">;
+            result.</span><span style="color:#e06c75;">distance </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> distance;
+         }
+      }
+      </span><span style="color:#c678dd;">return</span><span style="color:#abb2bf;"> result;
+   }
+
+   </span><span style="color:#c678dd;">void </span><span style="color:#61afef;">OdomCallback</span><span style="color:#abb2bf;">(</span><span style="color:#c678dd;">const</span><span style="color:#abb2bf;"> nav_msgs::Odometry::ConstPtr</span><span style="color:#56b6c2;">&amp; </span><span style="font-style:italic;color:#e06c75;">msg</span><span style="color:#abb2bf;">) {
+      </span><span style="color:#c678dd;">double</span><span style="color:#abb2bf;"> x </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> msg-&gt;</span><span style="color:#e06c75;">pose</span><span style="color:#abb2bf;">.</span><span style="color:#e06c75;">pose</span><span style="color:#abb2bf;">.</span><span style="color:#e06c75;">position</span><span style="color:#abb2bf;">.</span><span style="color:#e06c75;">x</span><span style="color:#abb2bf;">;
+      </span><span style="color:#c678dd;">double</span><span style="color:#abb2bf;"> y </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> msg-&gt;</span><span style="color:#e06c75;">pose</span><span style="color:#abb2bf;">.</span><span style="color:#e06c75;">pose</span><span style="color:#abb2bf;">.</span><span style="color:#e06c75;">position</span><span style="color:#abb2bf;">.</span><span style="color:#e06c75;">y</span><span style="color:#abb2bf;">;
+      LandmarkDistance landmarkd_distance </span><span style="color:#56b6c2;">= </span><span style="color:#e06c75;">find_closest</span><span style="color:#abb2bf;">(x, y);
+      landmark_publisher.</span><span style="color:#e06c75;">publish</span><span style="color:#abb2bf;">(landmarkd_distance);
+   }
+
+   </span><span style="color:#c678dd;">void </span><span style="color:#61afef;">init_landmarks</span><span style="color:#abb2bf;">() {
+      landmarks.</span><span style="color:#e06c75;">push_back</span><span style="color:#abb2bf;">(</span><span style="color:#e06c75;">Landmark</span><span style="color:#abb2bf;">{</span><span style="color:#98c379;">&quot;unit_box&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">});
+      landmarks.</span><span style="color:#e06c75;">push_back</span><span style="color:#abb2bf;">(</span><span style="color:#e06c75;">Landmark</span><span style="color:#abb2bf;">{</span><span style="color:#98c379;">&quot;unit_cylinder&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">, </span><span style="color:#56b6c2;">-</span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">});
+      landmarks.</span><span style="color:#e06c75;">push_back</span><span style="color:#abb2bf;">(</span><span style="color:#e06c75;">Landmark</span><span style="color:#abb2bf;">{</span><span style="color:#98c379;">&quot;unit_sphere&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#56b6c2;">-</span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">0.0</span><span style="color:#abb2bf;">});
+   }
+
+};
+
+</span><span style="color:#c678dd;">int </span><span style="color:#61afef;">main</span><span style="color:#abb2bf;">(</span><span style="color:#c678dd;">int </span><span style="font-style:italic;color:#e06c75;">argc</span><span style="color:#abb2bf;">, </span><span style="color:#c678dd;">char</span><span style="color:#56b6c2;">** </span><span style="font-style:italic;color:#e06c75;">argv</span><span style="color:#abb2bf;">) {
+   ros::</span><span style="color:#e06c75;">init</span><span style="color:#abb2bf;">(argc, argv, </span><span style="color:#98c379;">&quot;location_monitor&quot;</span><span style="color:#abb2bf;">);
+   ros::NodeHandle node_handle;
+   ros::Publisher landmark_publisher </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> node_handle.</span><span style="color:#e06c75;">advertise</span><span style="color:#abb2bf;">&lt;LandmarkDistance&gt;(</span><span style="color:#98c379;">&quot;closest_landmark&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">10</span><span style="color:#abb2bf;">);
+   LandmarkMonitor </span><span style="color:#e06c75;">monitor</span><span style="color:#abb2bf;">(landmark_publisher);
+   ros::Subscriber subscriber </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> node_handle.</span><span style="color:#e06c75;">subscribe</span><span style="color:#abb2bf;">(</span><span style="color:#98c379;">&quot;odom&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">10</span><span style="color:#abb2bf;">, </span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">LandmarkMonitor::OdomCallback, </span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">monitor);
+   ros::</span><span style="color:#e06c75;">spin</span><span style="color:#abb2bf;">();
+   </span><span style="color:#c678dd;">return </span><span style="color:#d19a66;">0</span><span style="color:#abb2bf;">;
+}
+</span></code></pre>
+<p>Esta implementacion es mas &quot;sencilla&quot; que la hecha por Huang ya que usa solo <code>structs</code></p>
+<p>El robot que utilizo es el <code>turtlebot3</code> y el mapa es uno hecho a partir del mapa <code>empty</code>
+al que le agregue un cilindro, una esfera y un box. En esta implementacion el
+utiliza un mensaje custom al que llamamos <code>LandmarkDistance.msg</code> que esta definido
+como:</p>
+<pre style="background-color:#282c34;">
+<code class="language-txt" data-lang="txt"><span style="color:#abb2bf;">string name # este es al nombre que le asignamos a el landmark
+float64 distance # esta es la distancia que nos separa del landmark
+</span></code></pre>
+<p>ROS genera el codigo de la definicion de esos types y los pone en un archivo <code>.h</code>
+al que accedemos con:</p>
+<p><code>#include &quot;location_monitor/LandmarkDistance.h&quot;</code></p>
+<p>Hay que tener en cuenta que esto tiene que estar configurado en los archivos de
+compilacion <code>package.xml</code> y <code>CMakeLists.txt</code> correctamente(si esto te parece chino
+tenes que ver el tutorial oficial sobre mensajes)</p>
+<h2 id="implementacion-en-rust">Implementacion en Rust<a class="zola-anchor" href="#implementacion-en-rust" aria-label="Anchor link for: implementacion-en-rust">🔗</a></h2>
+<p>la implementacion en Rust es la siguiente:</p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">use</span><span style="color:#abb2bf;"> env_logger;
+</span><span style="color:#c678dd;">use</span><span style="color:#abb2bf;"> rosrust;
+</span><span style="color:#c678dd;">use </span><span style="color:#abb2bf;">rosrust::Publisher;
+</span><span style="color:#c678dd;">use </span><span style="color:#abb2bf;">static_math::</span><span style="color:#d19a66;">V2</span><span style="color:#abb2bf;">;
+</span><span style="color:#c678dd;">use </span><span style="color:#abb2bf;">std::sync::mpsc;
+</span><span style="color:#c678dd;">use </span><span style="color:#abb2bf;">std::time::Duration;
+
+</span><span style="color:#c678dd;">use </span><span style="color:#abb2bf;">rosrust_msg::location_monitor::LandmarkDistance;
+
+#[</span><span style="color:#e06c75;">derive</span><span style="color:#abb2bf;">(Debug)]
+</span><span style="color:#c678dd;">struct </span><span style="color:#abb2bf;">Landmark {
+    </span><span style="color:#e06c75;">name</span><span style="color:#abb2bf;">: String,
+    </span><span style="color:#e06c75;">position</span><span style="color:#abb2bf;">: V2&lt;</span><span style="color:#c678dd;">f64</span><span style="color:#abb2bf;">&gt;
+}
+
+</span><span style="color:#c678dd;">impl </span><span style="color:#abb2bf;">Landmark {
+    </span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">new</span><span style="color:#abb2bf;">(</span><span style="font-style:italic;color:#e06c75;">name</span><span style="color:#abb2bf;">: String, </span><span style="font-style:italic;color:#e06c75;">position</span><span style="color:#abb2bf;">: V2&lt;</span><span style="color:#c678dd;">f64</span><span style="color:#abb2bf;">&gt;) -&gt; </span><span style="color:#c678dd;">Self </span><span style="color:#abb2bf;">{
+        </span><span style="color:#c678dd;">Self</span><span style="color:#abb2bf;">{name, position}
+    }
+}
+
+</span><span style="color:#c678dd;">struct </span><span style="color:#abb2bf;">LocationMonitor {
+    </span><span style="color:#e06c75;">landmarks</span><span style="color:#abb2bf;">: Vec&lt;Landmark&gt;,
+    </span><span style="color:#e06c75;">publisher</span><span style="color:#abb2bf;">: Publisher&lt;LandmarkDistance&gt;
+}
+
+</span><span style="color:#c678dd;">impl </span><span style="color:#abb2bf;">LocationMonitor {
+    </span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">init</span><span style="color:#abb2bf;">(</span><span style="font-style:italic;color:#e06c75;">publisher</span><span style="color:#abb2bf;">: Publisher&lt;LandmarkDistance&gt;) -&gt; </span><span style="color:#c678dd;">Self </span><span style="color:#abb2bf;">{
+        </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> landmarks </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">vec![Landmark::new(</span><span style="color:#98c379;">&quot;unit_box&quot;</span><span style="color:#abb2bf;">.</span><span style="color:#56b6c2;">to_string</span><span style="color:#abb2bf;">(), </span><span style="color:#d19a66;">V2</span><span style="color:#abb2bf;">::new_from(</span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">)),
+                         Landmark::new(</span><span style="color:#98c379;">&quot;unit_cylinder&quot;</span><span style="color:#abb2bf;">.</span><span style="color:#56b6c2;">to_string</span><span style="color:#abb2bf;">(), </span><span style="color:#d19a66;">V2</span><span style="color:#abb2bf;">::new_from(</span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">, </span><span style="color:#56b6c2;">-</span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">)),
+                         Landmark::new(</span><span style="color:#98c379;">&quot;unit_sphere&quot;</span><span style="color:#abb2bf;">.</span><span style="color:#56b6c2;">to_string</span><span style="color:#abb2bf;">(), </span><span style="color:#d19a66;">V2</span><span style="color:#abb2bf;">::new_from(</span><span style="color:#56b6c2;">-</span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">0.0</span><span style="color:#abb2bf;">))];
+        </span><span style="color:#c678dd;">Self</span><span style="color:#abb2bf;">{landmarks, publisher}
+    }
+
+    </span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">get_distance</span><span style="color:#abb2bf;">(</span><span style="font-style:italic;color:#e06c75;">landmark</span><span style="color:#abb2bf;">: </span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">Landmark, </span><span style="font-style:italic;color:#e06c75;">point</span><span style="color:#abb2bf;">: V2&lt;</span><span style="color:#c678dd;">f64</span><span style="color:#abb2bf;">&gt;) -&gt; </span><span style="color:#c678dd;">f64 </span><span style="color:#abb2bf;">{
+        </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> diff </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> landmark.position </span><span style="color:#56b6c2;">-</span><span style="color:#abb2bf;"> point;
+        </span><span style="color:#c678dd;">f64</span><span style="color:#abb2bf;">::sqrt(diff[</span><span style="color:#d19a66;">0</span><span style="color:#abb2bf;">] </span><span style="color:#56b6c2;">*</span><span style="color:#abb2bf;"> diff[</span><span style="color:#d19a66;">0</span><span style="color:#abb2bf;">] </span><span style="color:#56b6c2;">+</span><span style="color:#abb2bf;"> diff[</span><span style="color:#d19a66;">1</span><span style="color:#abb2bf;">] </span><span style="color:#56b6c2;">*</span><span style="color:#abb2bf;"> diff[</span><span style="color:#d19a66;">1</span><span style="color:#abb2bf;">])
+    }
+
+    </span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">find_closest</span><span style="color:#abb2bf;">(</span><span style="color:#56b6c2;">&amp;</span><span style="font-style:italic;color:#e06c75;">self</span><span style="color:#abb2bf;">, </span><span style="font-style:italic;color:#e06c75;">point</span><span style="color:#abb2bf;">: V2&lt;</span><span style="color:#c678dd;">f64</span><span style="color:#abb2bf;">&gt;) -&gt; LandmarkDistance {
+        </span><span style="color:#c678dd;">let mut</span><span style="color:#abb2bf;"> result </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> LandmarkDistance{name: </span><span style="color:#98c379;">&quot;&quot;</span><span style="color:#abb2bf;">.</span><span style="color:#56b6c2;">to_string</span><span style="color:#abb2bf;">(), distance: </span><span style="color:#56b6c2;">-</span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">};
+        </span><span style="color:#c678dd;">for</span><span style="color:#abb2bf;"> landmark </span><span style="color:#56b6c2;">in &amp;</span><span style="color:#e06c75;">self</span><span style="color:#abb2bf;">.landmarks {
+            </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> distance </span><span style="color:#56b6c2;">= </span><span style="color:#c678dd;">Self</span><span style="color:#abb2bf;">::get_distance(landmark, point);
+            </span><span style="color:#c678dd;">if</span><span style="color:#abb2bf;"> result.distance </span><span style="color:#56b6c2;">&lt; </span><span style="color:#d19a66;">0.0 </span><span style="color:#56b6c2;">||</span><span style="color:#abb2bf;"> distance </span><span style="color:#56b6c2;">&lt;</span><span style="color:#abb2bf;"> result.distance {
+                result.name </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> landmark.name.</span><span style="color:#56b6c2;">clone</span><span style="color:#abb2bf;">();
+                result.distance </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> distance;
+            }
+        }
+        result
+    }
+}
+
+</span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">main</span><span style="color:#abb2bf;">() {
+    env_logger::init();
+
+    rosrust::init(</span><span style="color:#98c379;">&quot;location_monitor_rust&quot;</span><span style="color:#abb2bf;">);
+    </span><span style="color:#c678dd;">let </span><span style="color:#abb2bf;">(tx, rx) </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">mpsc::channel();
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> landmark_publisher </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">rosrust::publish(</span><span style="color:#98c379;">&quot;landmark_distance&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">2</span><span style="color:#abb2bf;">).</span><span style="color:#56b6c2;">unwrap</span><span style="color:#abb2bf;">();
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> monitor </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">LocationMonitor::init(landmark_publisher);
+
+    </span><span style="font-style:italic;color:#7f848e;">// NOTE(elsuizo:2021-07-21): nos subscribimos al topic &quot;/odom&quot; y pasamos ese mensaje a traves
+    // del thread
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> subscriber_info </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">rosrust::subscribe(</span><span style="color:#98c379;">&quot;odom&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">2</span><span style="color:#abb2bf;">, </span><span style="color:#c678dd;">move </span><span style="color:#56b6c2;">|</span><span style="color:#abb2bf;">msg: rosrust_msg::nav_msgs::Odometry</span><span style="color:#56b6c2;">| </span><span style="color:#abb2bf;">{
+        </span><span style="font-style:italic;color:#7f848e;">// Callback for handling received messages
+</span><span style="color:#abb2bf;">        tx.</span><span style="color:#56b6c2;">send</span><span style="color:#abb2bf;">(msg).</span><span style="color:#56b6c2;">unwrap</span><span style="color:#abb2bf;">();
+    })
+    .</span><span style="color:#56b6c2;">unwrap</span><span style="color:#abb2bf;">();
+    </span><span style="color:#c678dd;">while </span><span style="color:#abb2bf;">rosrust::is_ok() {
+        </span><span style="font-style:italic;color:#7f848e;">// NOTE(elsuizo:2021-07-21): esperamos la recepcion del mensaje
+        </span><span style="color:#c678dd;">if let </span><span style="color:#abb2bf;">Ok(msg) </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> rx.</span><span style="color:#56b6c2;">recv_timeout</span><span style="color:#abb2bf;">(Duration::from_millis(</span><span style="color:#d19a66;">10</span><span style="color:#abb2bf;">)) {
+            </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> x </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> msg.pose.pose.position.x;
+            </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> y </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> msg.pose.pose.position.y;
+            </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> position </span><span style="color:#56b6c2;">= </span><span style="color:#d19a66;">V2</span><span style="color:#abb2bf;">::new_from(x, y);
+            </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> landmark_distance </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> monitor.</span><span style="color:#56b6c2;">find_closest</span><span style="color:#abb2bf;">(position);
+            monitor.publisher.</span><span style="color:#56b6c2;">send</span><span style="color:#abb2bf;">(landmark_distance);
+        }
+    }
+
+    rosrust::spin();
+}
+</span></code></pre>
+<p>Como dijimos nos subscribimos al topic <code>/odom</code> con el que obtenemos la posicion
+<code>(x, y)</code> del robot en el mapa con esta informacion calculamos la distancia con
+respecto al conjunto de obstaculos y verificamos cual es el mas cercano. A esa
+informacion la publicamos como un mensaje <code>LandmarkDistance</code> que definimos en
+el codigo <code>Cpp</code>. Notemos que la implementacion de Rust genera tambien el codigo
+necesario para esas definiciones sin que tengamos que hacer nada, solo la importamos
+con la linea de codigo:</p>
+<p><code>use rosrust_msg::location_monitor::LandmarkDistance;</code></p>
+<p>Y como todo lo que definimos tiene su type bien establecido podemos incorporarlo
+al codigo sin problemas:</p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">struct </span><span style="color:#abb2bf;">LocationMonitor {
+    </span><span style="color:#e06c75;">landmarks</span><span style="color:#abb2bf;">: Vec&lt;Landmark&gt;,
+    </span><span style="color:#e06c75;">publisher</span><span style="color:#abb2bf;">: Publisher&lt;LandmarkDistance&gt;
+}
+</span></code></pre>
+<p>Una de las particularidades de la implementacion en Rust es que debemos utilizar
+threads para compartir informacion y dado que el lenguaje nos garantiza que es
+seguro no debemos preocuparnos por cosas que pasan en otros lenguajes como por
+ejemplo <code>data races</code></p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> subscriber_info </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">rosrust::subscribe(</span><span style="color:#98c379;">&quot;odom&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">2</span><span style="color:#abb2bf;">, </span><span style="color:#c678dd;">move </span><span style="color:#56b6c2;">|</span><span style="color:#abb2bf;">msg: rosrust_msg::nav_msgs::Odometry</span><span style="color:#56b6c2;">| </span><span style="color:#abb2bf;">{
+  </span><span style="font-style:italic;color:#7f848e;">// Callback for handling received messages
+</span><span style="color:#abb2bf;">  tx.</span><span style="color:#56b6c2;">send</span><span style="color:#abb2bf;">(msg).</span><span style="color:#56b6c2;">unwrap</span><span style="color:#abb2bf;">();
+})
+</span></code></pre>
+<p>Aqui enviamos el <code>msg</code> a traves de un thread cada vez que recibimos el mismo en
+el topic <code>/odom</code>. Como contrapartida hacemos la recepcion de manera segura con</p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">if let </span><span style="color:#abb2bf;">Ok(msg) </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> rx.</span><span style="color:#56b6c2;">recv_timeout</span><span style="color:#abb2bf;">(Duration::from_millis(</span><span style="color:#d19a66;">10</span><span style="color:#abb2bf;">)) {
+   </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> x </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> msg.pose.pose.position.x;
+   </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> y </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> msg.pose.pose.position.y;
+   </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> position </span><span style="color:#56b6c2;">= </span><span style="color:#d19a66;">V2</span><span style="color:#abb2bf;">::new_from(x, y);
+   </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> landmark_distance </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> monitor.</span><span style="color:#56b6c2;">find_closest</span><span style="color:#abb2bf;">(position);
+   monitor.publisher.</span><span style="color:#56b6c2;">send</span><span style="color:#abb2bf;">(landmark_distance);
+}
+</span></code></pre>
+<p>donde hacemos el llamado a los metodos que nos permiten calcular y publicar cual
+es el obstaculo que esta mas cerca.</p>
+<p>Por ultimo podemos ver todo esto en accion en el siguiente video. Saludos!!!</p>
+<div >
+    <iframe
+        src="https://www.youtube.com/embed/r3a2wXH-0N0"
+        webkitallowfullscreen
+        mozallowfullscreen
+        allowfullscreen>
+    </iframe>
+</div>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                    
+                    in <a href="https://elsuizo.github.io/categories/article/">article</a>
+                
+                
+                    and tagged
+                    
+                        <a href="https://elsuizo.github.io/tags/rust/">Rust</a>
+                        
+                            
+                                
+                                    and
+                                
+                            
+                        
+                    
+                        <a href="https://elsuizo.github.io/tags/ros/">ROS</a>
+                        
+                            
+                        
+                    
+                
+            </p>
+            
+            
+        </footer>
+    
+</article>
+
+
+    </body>
+
+</html>

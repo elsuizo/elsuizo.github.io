@@ -1,0 +1,399 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xml:lang="en">
+	<title> - ROS</title>
+	<link href="https://elsuizo.github.io/tags/ros/atom.xml" rel="self" type="application/atom+xml"/>
+  <link href="https://elsuizo.github.io/"/>
+	<generator uri="https://www.getzola.org/">Zola</generator>
+	<updated>2021-07-31T00:00:00+00:00</updated>
+	<id>https://elsuizo.github.io/tags/ros/atom.xml</id>
+	<entry xml:lang="en">
+		<title>Monitor de obstaculos para ROS con Rust</title>
+		<published>2021-07-31T00:00:00+00:00</published>
+		<updated>2021-07-31T00:00:00+00:00</updated>
+		<link href="https://elsuizo.github.io/ros-rust-monitor-obstaculos/" type="text/html"/>
+		<id>https://elsuizo.github.io/ros-rust-monitor-obstaculos/</id>
+		<content type="html">&lt;h1 id=&quot;monitoreando-obstaculos&quot;&gt;Monitoreando obstaculos&lt;a class=&quot;zola-anchor&quot; href=&quot;#monitoreando-obstaculos&quot; aria-label=&quot;Anchor link for: monitoreando-obstaculos&quot;&gt;🔗&lt;&#x2F;a&gt;&lt;&#x2F;h1&gt;
+&lt;p&gt;Esta es una traduccion a Rust de una implementacion hecha en &lt;code&gt;Cpp&lt;&#x2F;code&gt; por Justin Huang&lt;&#x2F;p&gt;
+&lt;p&gt;aqui les dejo el video:&lt;&#x2F;p&gt;
+&lt;div &gt;
+    &lt;iframe
+        src=&quot;https:&#x2F;&#x2F;www.youtube.com&#x2F;embed&#x2F;2Cmdu6mkxD0&quot;
+        webkitallowfullscreen
+        mozallowfullscreen
+        allowfullscreen&gt;
+    &lt;&#x2F;iframe&gt;
+&lt;&#x2F;div&gt;
+&lt;p&gt;Me parecio interesante porque es como un &amp;quot;hola mundo&amp;quot; un poco mas avanzado.
+Ademas es una linda oportunidad para probar si podemos generar la misma
+ergonomia con Rust.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;definicion-del-problema&quot;&gt;Definicion del problema&lt;a class=&quot;zola-anchor&quot; href=&quot;#definicion-del-problema&quot; aria-label=&quot;Anchor link for: definicion-del-problema&quot;&gt;🔗&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;Tenemos nuestro robot que publica su posicion a traves del topic &lt;code&gt;&#x2F;odom&lt;&#x2F;code&gt; y
+tenemos de antemano las posiciones de los obstaculos que estan en el mapa donde
+transita el robot, entonces vamos a generar un nodo que monitorea cual es el
+obstaculo mas cercano.&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;solucion-del-problema-en-cpp&quot;&gt;Solucion del problema en Cpp&lt;a class=&quot;zola-anchor&quot; href=&quot;#solucion-del-problema-en-cpp&quot; aria-label=&quot;Anchor link for: solucion-del-problema-en-cpp&quot;&gt;🔗&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;Para que podamos comparar las implementaciones, voy a poner aca la implementacion
+en &lt;code&gt;Cpp&lt;&#x2F;code&gt;.&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-cpp&quot; data-lang=&quot;cpp&quot;&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;#include &lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;lt;vector&amp;gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;#include &lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;lt;string&amp;gt;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;#include &lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;ros&#x2F;ros.h&amp;quot;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;#include &lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;nav_msgs&#x2F;Odometry.h&amp;quot;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;#include &lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;location_monitor&#x2F;LandmarkDistance.h&amp;quot;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;using&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; location_monitor::LandmarkDistance;
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;struct &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;Landmark {
+   std::string name;
+   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;double&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; x;
+   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;double&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; y;
+};
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;struct &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;LandmarkMonitor {
+   std::vector&amp;lt;Landmark&amp;gt; landmarks;
+
+   ros::Publisher landmark_publisher;
+
+   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;LandmarkMonitor&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;const&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; ros::Publisher&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;landmark_pub&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;): &lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;landmarks&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(), &lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;landmark_publisher&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(landmark_pub) {
+      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;init_landmarks&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;();
+   }
+
+   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;double &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;get_distance&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(Landmark &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;landmark&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;double &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;x&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;double &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;y&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;) {
+      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;double&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; diff_x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmark.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; x;
+      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;double&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; diff_y &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmark.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;y &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; y;
+      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;std::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;sqrt&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(diff_x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; diff_x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; diff_y &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; diff_y);
+   }
+
+   LandmarkDistance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;find_closest&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;double &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;x&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;double &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;y&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;) {
+      LandmarkDistance result;
+      result.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;distance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= -&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;;
+      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;for &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(size_t i &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;; i &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmarks.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;size&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(); &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;++&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;i) {
+         &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;const&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; Landmark&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmark &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmarks[i];
+         &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;double&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; distance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;get_distance&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(landmark, x, y);
+         &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;if&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(result.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;distance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;&amp;lt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;0 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;||&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; distance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; result.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;distance&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;) {
+            result.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;name &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmark.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;;
+            result.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;distance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; distance;
+         }
+      }
+      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;return&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; result;
+   }
+
+   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;void &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;OdomCallback&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;const&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; nav_msgs::Odometry::ConstPtr&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;&amp;amp; &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;msg&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;) {
+      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;double&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; msg-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;pose&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;pose&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;position&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;x&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;;
+      &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;double&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; y &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; msg-&amp;gt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;pose&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;pose&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;position&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;y&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;;
+      LandmarkDistance landmarkd_distance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;find_closest&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(x, y);
+      landmark_publisher.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;publish&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(landmarkd_distance);
+   }
+
+   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;void &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;init_landmarks&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;() {
+      landmarks.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;push_back&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;Landmark&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;{&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;unit_box&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;});
+      landmarks.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;push_back&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;Landmark&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;{&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;unit_cylinder&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;});
+      landmarks.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;push_back&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;Landmark&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;{&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;unit_sphere&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;0.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;});
+   }
+
+};
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;int &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;main&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;int &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;argc&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;char&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;** &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;argv&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;) {
+   ros::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;init&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(argc, argv, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;location_monitor&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;);
+   ros::NodeHandle node_handle;
+   ros::Publisher landmark_publisher &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; node_handle.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;advertise&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;&amp;lt;LandmarkDistance&amp;gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;closest_landmark&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;10&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;);
+   LandmarkMonitor &lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;monitor&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(landmark_publisher);
+   ros::Subscriber subscriber &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; node_handle.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;subscribe&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;odom&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;10&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;LandmarkMonitor::OdomCallback, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;monitor);
+   ros::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;spin&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;();
+   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;return &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;;
+}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Esta implementacion es mas &amp;quot;sencilla&amp;quot; que la hecha por Huang ya que usa solo &lt;code&gt;structs&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;El robot que utilizo es el &lt;code&gt;turtlebot3&lt;&#x2F;code&gt; y el mapa es uno hecho a partir del mapa &lt;code&gt;empty&lt;&#x2F;code&gt;
+al que le agregue un cilindro, una esfera y un box. En esta implementacion el
+utiliza un mensaje custom al que llamamos &lt;code&gt;LandmarkDistance.msg&lt;&#x2F;code&gt; que esta definido
+como:&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-txt&quot; data-lang=&quot;txt&quot;&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;string name # este es al nombre que le asignamos a el landmark
+float64 distance # esta es la distancia que nos separa del landmark
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;ROS genera el codigo de la definicion de esos types y los pone en un archivo &lt;code&gt;.h&lt;&#x2F;code&gt;
+al que accedemos con:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;#include &amp;quot;location_monitor&#x2F;LandmarkDistance.h&amp;quot;&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Hay que tener en cuenta que esto tiene que estar configurado en los archivos de
+compilacion &lt;code&gt;package.xml&lt;&#x2F;code&gt; y &lt;code&gt;CMakeLists.txt&lt;&#x2F;code&gt; correctamente(si esto te parece chino
+tenes que ver el tutorial oficial sobre mensajes)&lt;&#x2F;p&gt;
+&lt;h2 id=&quot;implementacion-en-rust&quot;&gt;Implementacion en Rust&lt;a class=&quot;zola-anchor&quot; href=&quot;#implementacion-en-rust&quot; aria-label=&quot;Anchor link for: implementacion-en-rust&quot;&gt;🔗&lt;&#x2F;a&gt;&lt;&#x2F;h2&gt;
+&lt;p&gt;la implementacion en Rust es la siguiente:&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;use&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; env_logger;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;use&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; rosrust;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;use &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::Publisher;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;use &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;static_math::&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;V2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;use &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;std::sync::mpsc;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;use &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;std::time::Duration;
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;use &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust_msg::location_monitor::LandmarkDistance;
+
+#[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;derive&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(Debug)]
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;struct &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;Landmark {
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: String,
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;position&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: V2&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;f64&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;&amp;gt;
+}
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;impl &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;Landmark {
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;new&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;name&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: String, &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;position&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: V2&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;f64&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;&amp;gt;) -&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;Self &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;{
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;Self&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;{name, position}
+    }
+}
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;struct &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;LocationMonitor {
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;landmarks&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: Vec&amp;lt;Landmark&amp;gt;,
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;publisher&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: Publisher&amp;lt;LandmarkDistance&amp;gt;
+}
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;impl &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;LocationMonitor {
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;init&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;publisher&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: Publisher&amp;lt;LandmarkDistance&amp;gt;) -&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;Self &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;{
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmarks &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;vec![Landmark::new(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;unit_box&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;to_string&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(), &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;V2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;::new_from(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;)),
+                         Landmark::new(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;unit_cylinder&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;to_string&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(), &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;V2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;::new_from(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;)),
+                         Landmark::new(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;unit_sphere&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;to_string&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(), &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;V2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;::new_from(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;0.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;))];
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;Self&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;{landmarks, publisher}
+    }
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;get_distance&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;landmark&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;Landmark, &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;point&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: V2&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;f64&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;&amp;gt;) -&amp;gt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;f64 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;{
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; diff &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmark.position &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; point;
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;f64&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;::sqrt(diff[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;] &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; diff[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;] &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; diff[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;] &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;*&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; diff[&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;])
+    }
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;find_closest&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;&amp;amp;&lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;point&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: V2&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;f64&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;&amp;gt;) -&amp;gt; LandmarkDistance {
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let mut&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; result &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; LandmarkDistance{name: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;to_string&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(), distance: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;-&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;};
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;for&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmark &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;in &amp;amp;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;self&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;.landmarks {
+            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; distance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;Self&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;::get_distance(landmark, point);
+            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;if&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; result.distance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;&amp;lt; &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;0.0 &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;||&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; distance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;&amp;lt;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; result.distance {
+                result.name &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmark.name.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;clone&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;();
+                result.distance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; distance;
+            }
+        }
+        result
+    }
+}
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;main&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;() {
+    env_logger::init();
+
+    rosrust::init(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;location_monitor_rust&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;);
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(tx, rx) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;mpsc::channel();
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmark_publisher &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::publish(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;landmark_distance&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;unwrap&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;();
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; monitor &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;LocationMonitor::init(landmark_publisher);
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; NOTE(elsuizo:2021-07-21): nos subscribimos al topic &amp;quot;&#x2F;odom&amp;quot; y pasamos ese mensaje a traves
+    &#x2F;&#x2F; del thread
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; subscriber_info &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::subscribe(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;odom&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;move &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;|&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;msg: rosrust_msg::nav_msgs::Odometry&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;| &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;{
+        &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Callback for handling received messages
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;        tx.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;send&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(msg).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;unwrap&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;();
+    })
+    .&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;unwrap&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;();
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;while &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::is_ok() {
+        &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; NOTE(elsuizo:2021-07-21): esperamos la recepcion del mensaje
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;Ok(msg) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; rx.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;recv_timeout&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(Duration::from_millis(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;10&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;)) {
+            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; msg.pose.pose.position.x;
+            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; y &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; msg.pose.pose.position.y;
+            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; position &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;V2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;::new_from(x, y);
+            &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmark_distance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; monitor.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;find_closest&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(position);
+            monitor.publisher.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;send&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(landmark_distance);
+        }
+    }
+
+    rosrust::spin();
+}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Como dijimos nos subscribimos al topic &lt;code&gt;&#x2F;odom&lt;&#x2F;code&gt; con el que obtenemos la posicion
+&lt;code&gt;(x, y)&lt;&#x2F;code&gt; del robot en el mapa con esta informacion calculamos la distancia con
+respecto al conjunto de obstaculos y verificamos cual es el mas cercano. A esa
+informacion la publicamos como un mensaje &lt;code&gt;LandmarkDistance&lt;&#x2F;code&gt; que definimos en
+el codigo &lt;code&gt;Cpp&lt;&#x2F;code&gt;. Notemos que la implementacion de Rust genera tambien el codigo
+necesario para esas definiciones sin que tengamos que hacer nada, solo la importamos
+con la linea de codigo:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;use rosrust_msg::location_monitor::LandmarkDistance;&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Y como todo lo que definimos tiene su type bien establecido podemos incorporarlo
+al codigo sin problemas:&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;struct &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;LocationMonitor {
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;landmarks&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: Vec&amp;lt;Landmark&amp;gt;,
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;publisher&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: Publisher&amp;lt;LandmarkDistance&amp;gt;
+}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Una de las particularidades de la implementacion en Rust es que debemos utilizar
+threads para compartir informacion y dado que el lenguaje nos garantiza que es
+seguro no debemos preocuparnos por cosas que pasan en otros lenguajes como por
+ejemplo &lt;code&gt;data races&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; subscriber_info &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::subscribe(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;odom&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;move &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;|&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;msg: rosrust_msg::nav_msgs::Odometry&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;| &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;{
+  &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Callback for handling received messages
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;  tx.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;send&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(msg).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;unwrap&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;();
+})
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Aqui enviamos el &lt;code&gt;msg&lt;&#x2F;code&gt; a traves de un thread cada vez que recibimos el mismo en
+el topic &lt;code&gt;&#x2F;odom&lt;&#x2F;code&gt;. Como contrapartida hacemos la recepcion de manera segura con&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;if let &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;Ok(msg) &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; rx.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;recv_timeout&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(Duration::from_millis(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;10&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;)) {
+   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; x &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; msg.pose.pose.position.x;
+   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; y &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; msg.pose.pose.position.y;
+   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; position &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;V2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;::new_from(x, y);
+   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; landmark_distance &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;=&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; monitor.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;find_closest&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(position);
+   monitor.publisher.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;send&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(landmark_distance);
+}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;donde hacemos el llamado a los metodos que nos permiten calcular y publicar cual
+es el obstaculo que esta mas cerca.&lt;&#x2F;p&gt;
+&lt;p&gt;Por ultimo podemos ver todo esto en accion en el siguiente video. Saludos!!!&lt;&#x2F;p&gt;
+&lt;div &gt;
+    &lt;iframe
+        src=&quot;https:&#x2F;&#x2F;www.youtube.com&#x2F;embed&#x2F;r3a2wXH-0N0&quot;
+        webkitallowfullscreen
+        mozallowfullscreen
+        allowfullscreen&gt;
+    &lt;&#x2F;iframe&gt;
+&lt;&#x2F;div&gt;
+</content>
+	</entry>
+	<entry xml:lang="en">
+		<title>Hola mundo con ROS y Rust</title>
+		<published>2021-07-25T00:00:00+00:00</published>
+		<updated>2021-07-25T00:00:00+00:00</updated>
+		<link href="https://elsuizo.github.io/ros-rust/" type="text/html"/>
+		<id>https://elsuizo.github.io/ros-rust/</id>
+		<content type="html">&lt;h1 id=&quot;como-empezar-con-ros-y-rust&quot;&gt;Como empezar con ROS y Rust&lt;a class=&quot;zola-anchor&quot; href=&quot;#como-empezar-con-ros-y-rust&quot; aria-label=&quot;Anchor link for: como-empezar-con-ros-y-rust&quot;&gt;🔗&lt;&#x2F;a&gt;&lt;&#x2F;h1&gt;
+&lt;p&gt;Si comenzar con ROS ya tiene algunas dificultades porque como se dice
+vulgarmente tienen que estar todos los patitos en fila(&lt;code&gt;CMakes&lt;&#x2F;code&gt;, &lt;code&gt;package.xml&lt;&#x2F;code&gt;,
+dependencias, workpace de catkin, ...etc) entonces comenzar con ROS y Rust aun
+mas porque ni bien empezas te preguntas pero como integro mi nodo de Rust(hecho
+con &lt;code&gt;cargo&lt;&#x2F;code&gt;) a un projecto de catkin(que usa &lt;code&gt;CMake&lt;&#x2F;code&gt;)???&lt;&#x2F;p&gt;
+&lt;p&gt;Bueno no te preocupes hice una herramienta:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;a href=&quot;https:&#x2F;&#x2F;crates.io&#x2F;crates&#x2F;ros-project-generator&quot;&gt;&lt;code&gt;ros-project-generator&lt;&#x2F;code&gt;&lt;&#x2F;a&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;que te genera los nodos de ROS hechos
+con Rust(hecho con &lt;code&gt;cargo&lt;&#x2F;code&gt;) y que se comporta como un nodo &amp;quot;normal&amp;quot; de otro
+lenguaje como &lt;code&gt;python&lt;&#x2F;code&gt; o &lt;code&gt;Cpp&lt;&#x2F;code&gt;, osea genera los nodos y todos los archivos que
+se necesitan para que compilen con &lt;code&gt;CMake&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;La herramienta se instala como un &lt;em&gt;subcommand&lt;&#x2F;em&gt; de &lt;code&gt;cargo&lt;&#x2F;code&gt; haciendo simplemente:&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;cargo install ros-project-generator&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Una vez instalado solo necesitamos un archivo de configuracion &lt;code&gt;config.yaml&lt;&#x2F;code&gt; en
+nuestro &lt;em&gt;workspace&lt;&#x2F;em&gt; de &lt;code&gt;catkin&lt;&#x2F;code&gt; como este:&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-yaml&quot; data-lang=&quot;yaml&quot;&gt;&lt;span style=&quot;color:#7f848e;&quot;&gt;# define a name
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;project_name&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;navigation-robot&amp;quot;
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#7f848e;&quot;&gt;# define a version
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;version&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;0.0.1
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#7f848e;&quot;&gt;# define the packages names
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;nodes&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;:
+   - &lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;listener
+   &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;- &lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;talker
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Donde se definen el nombre del conjunto de nodos(&lt;code&gt;project_name&lt;&#x2F;code&gt;), la version y
+la lista de nodos que queremos crear. Luego solo hacemos(siempre en la carpeta
+donde esta el archivo de configuracion):&lt;&#x2F;p&gt;
+&lt;p&gt;&lt;code&gt;cargo ros-project-generator&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Si todo salio bien vamos a obtener un mensaje como:&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-txt&quot; data-lang=&quot;txt&quot;&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;navigation-robot project generated!!!
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Ahora que tenemos generados los nodos, deberian aparecer dentro de la carpeta
+&lt;code&gt;src&lt;&#x2F;code&gt; en este caso como generamos dos nodos nos deberian aparecer &lt;code&gt;listener&lt;&#x2F;code&gt; y
+&lt;code&gt;talker&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Ahora para completar este &lt;code&gt;hola mundo&lt;&#x2F;code&gt; de ROS deberiamos hacer que el nodo &lt;code&gt;talker&lt;&#x2F;code&gt;
+publique &amp;quot;Hola mundo&amp;quot; en un topic que le asignemos por ejemplo &lt;code&gt;&amp;quot;chatter&amp;quot;&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p&gt;Para ello necesitamos las siguientes lineas de codigo:&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;use&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; env_logger;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;use&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; rosrust;
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;main&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;() {
+    env_logger::init();
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Initialize node
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::init(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;talker&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;);
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Create publisher
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; chatter_pub &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::publish(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;chatter&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;unwrap&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;();
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; log_names &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::param(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;~log_names&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;unwrap&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;().&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;get&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;().&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;unwrap_or&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;false&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;);
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let mut&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;;
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Create object that maintains 10Hz between sleep requests
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; rate &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::rate(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;10.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;);
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Breaks when a shutdown signal is sent
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;while &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::is_ok() {
+        &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Create string message
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let mut&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; msg &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust_msg::std_msgs::String::default();
+        msg.data &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;format!(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;hello world from rosrust &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;{}&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, count);
+
+        &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Log event
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::ros_info&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;!&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;Publishing: {}&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, msg.data);
+
+        &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Send string message to topic via publisher
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;        chatter_pub.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;send&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(msg).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;unwrap&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;();
+
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;if&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; log_names {
+            rosrust::ros_info&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;!&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;Subscriber names: {:?}&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, chatter_pub.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;subscriber_names&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;());
+        }
+
+        &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Sleep to maintain 10Hz rate
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;        rate.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;sleep&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;();
+
+        count &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;+= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;;
+    }
+}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Luego para el nodo &lt;code&gt;listener&lt;&#x2F;code&gt; debemos hacer que el mismo se subscriba al topic
+que esta publicando el nodo anterior y asi completar este &amp;quot;Hola mundo&amp;quot;&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-rust&quot; data-lang=&quot;rust&quot;&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;use&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; env_logger;
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;use&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; rosrust;
+
+&lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;fn &lt;&#x2F;span&gt;&lt;span style=&quot;color:#61afef;&quot;&gt;main&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;() {
+    env_logger::init();
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Initialize node
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::init(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;listener&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;);
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Create subscriber
+    &#x2F;&#x2F; The subscriber is stopped when the returned object is destroyed
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; subscriber_info &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::subscribe(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;chatter&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, &lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;2&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, |&lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#e06c75;&quot;&gt;v&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;: rosrust_msg::std_msgs::String| {
+        &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Callback for handling received messages
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::ros_info&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;!&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;Received: {}&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, v.data);
+    })
+    .&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;unwrap&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;();
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; log_names &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::param(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;~log_names&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;).&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;unwrap&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;().&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;get&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;().&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;unwrap_or&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;false&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;);
+
+    &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;if&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; log_names {
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;let&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; rate &lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;= &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::rate(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#d19a66;&quot;&gt;1.0&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;);
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;while &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::is_ok() {
+            rosrust::ros_info&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;!&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;(&lt;&#x2F;span&gt;&lt;span style=&quot;color:#98c379;&quot;&gt;&amp;quot;Publisher uris: {:?}&amp;quot;&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;, subscriber_info.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;publisher_uris&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;());
+            rate.&lt;&#x2F;span&gt;&lt;span style=&quot;color:#56b6c2;&quot;&gt;sleep&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;();
+        }
+    } &lt;&#x2F;span&gt;&lt;span style=&quot;color:#c678dd;&quot;&gt;else &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;{
+        &lt;&#x2F;span&gt;&lt;span style=&quot;font-style:italic;color:#7f848e;&quot;&gt;&#x2F;&#x2F; Block the thread until a shutdown signal is received
+        &lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt;rosrust::spin();
+    }
+}
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Si todo salio bien vamos a poder compilar nuestros nodos con el comando de siempre
+que es(asumiendo que estamos usando &lt;code&gt;catkin&lt;&#x2F;code&gt;)&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;catkin_make
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Si todo ha compilado sin errores tenemos ahora entonces los ejecutables de cada
+uno de los nodos disponibles para que podamos ejecutarlos, osea que podemos hacer&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;rosrun&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; listener listener
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;y en otra terminal el otro nodo:&lt;&#x2F;p&gt;
+&lt;pre style=&quot;background-color:#282c34;&quot;&gt;
+&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span style=&quot;color:#e06c75;&quot;&gt;rosrun&lt;&#x2F;span&gt;&lt;span style=&quot;color:#abb2bf;&quot;&gt; talker talker
+&lt;&#x2F;span&gt;&lt;&#x2F;code&gt;&lt;&#x2F;pre&gt;
+&lt;p&gt;Para obtener nuestro preciado &lt;code&gt;Hello World!!!&lt;&#x2F;code&gt;&lt;&#x2F;p&gt;
+&lt;p class=&quot;gif&quot;&gt;
+  &lt;img src=&quot;.&amp;#x2F;hola_mundo.png&quot;&#x2F;&gt;
+&lt;&#x2F;p&gt;
+</content>
+	</entry>
+</feed>

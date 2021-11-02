@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+
+      
+          <link rel="stylesheet" href="https://elsuizo.github.io/site.css">
+      
+
+      
+      
+    </head>
+
+    <body class="hack dark main container">
+        
+    
+        
+                
+                    <header>
+                        <nav itemscope itemtype="http://schema.org/SiteNavigationElement">
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;elsuizo.github.io&#x2F;">
+                                <span itemprop="name">Home
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;elsuizo.github.io&#x2F;&#x2F;categories">
+                                <span itemprop="name">Categories
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;elsuizo.github.io&#x2F;&#x2F;tags">
+                                <span itemprop="name">Tags
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;github.com&#x2F;elsuizo">
+                                <span itemprop="name">Martin Noblia github
+                                </span></a>
+                        
+                        </nav>
+                    </header>
+                
+            
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Primeros pasos con Rust</h1>
+        <span class="muted">
+    <svg style="margin-bottom:-3px" class="i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>2 minute read</span>
+    <svg style="margin-bottom: -3px" class="i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    Published: 2021-07-24
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <h3 id="presentacion-de-rust">Presentacion de Rust<a class="zola-anchor" href="#presentacion-de-rust" aria-label="Anchor link for: presentacion-de-rust">🔗</a></h3>
+<p>Rust es un lenguaje de programacion particular que viene a solucionar un
+problema que existe desde hace mucho tiempo con el manejo de memoria seguro
+y eficiente.</p>
+<ul>
+<li>
+<p>Es seguro: Porque el compilador y el diseño del lenguaje no permite que el programador
+cometa los errores clasicos de manejo de memoria(punteros colgados, dobles frees,
+buffer overflow...etc)</p>
+</li>
+<li>
+<p>ES eficiente: Porque para lograr lo anterior no utiliza ningun &quot;runtime&quot;(como Java)
+o GC(&quot;Garbage collector&quot;) por lo que hace que el codigo generado sea super
+eficiente(poco consumo de memoria, excelente generacion de codigo maquina)</p>
+</li>
+</ul>
+<p>Al ser un lenguaje relativamente nuevo toma las preferencias y lecciones aprendidas
+por la industria del software en cuanto a diseño, por ejemplo esta mas orientado
+a los datos (&quot;data oriented&quot;) que a la programacion con objetos. Tambien su diseño
+se vio muy influenciado por lenguajes funcionales, teniendo un gran soporte para
+ese paradigma de programacion.</p>
+<p>Como comenzar???. Bueno primero necesitamos instalar el compilador y el <em>package mannager</em>
+que se llama <code>cargo</code>.</p>
+<p>Vamos a la pagina del lenguaje:</p>
+<p><a href="https://www.rust-lang.org/"><code>pagina oficial de Rust</code></a></p>
+<p>vamos a la la pestaña &quot;get started&quot; ---&gt; &quot;installing Rust&quot; y ahi seguimos los
+pasos(segun el Sistema operativo que tengamos)</p>
+<p>Si todo salio bien debemos tener disponible los siguientes comandos en nuestro
+sistema:</p>
+<ul>
+<li><code>rustc</code></li>
+<li><code>cargo</code></li>
+</ul>
+<p>Ahora hagamos nuestro primer programa en Rust. Obviamente y para seguir la tradicion
+el famoso hola mundo!!!.</p>
+<p>Primero creamos el proyecto con la herramienta <code>cargo</code> haciendo en la carpeta
+donde queremos tener el mismo:</p>
+<p><code>cargo new hola-rust</code></p>
+<p>Si todo fue bien obtenemos el mensaje:</p>
+<p><code>Created binary (application) </code>hola-rust<code> package</code></p>
+<p>en la misma tenemos los siguientes archivos:</p>
+<pre style="background-color:#282c34;">
+<code class="language-txt" data-lang="txt"><span style="color:#abb2bf;">.
+├── Cargo.toml
+└── src
+    └── main.rs
+
+</span></code></pre>
+<p>Donde:</p>
+<ul>
+<li><code>Cargo.toml</code>: Es el archivo de configuracion del <em>package mannager</em> donde podemos
+manejar las dependencias de nuestro proyecto, banderas para la compilacion, ...etc</li>
+<li><code>main.rs</code>: En este archivo vamos a escribir nuestro hola mundo, como ya viene
+casi listo solo tenemos que modificar la <code>String</code> (en realidad es un <code>&amp;str</code>)
+que esta entre &quot;&quot; y poner el mensaje en nuestro idioma(aunque no estoy de acuerdo
+de programar en español...solo por esta vez)</li>
+</ul>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">fn </span><span style="color:#61afef;">main</span><span style="color:#abb2bf;">() {
+    println!(</span><span style="color:#98c379;">&quot;Hola Mundo!!!&quot;</span><span style="color:#abb2bf;">);
+}
+</span></code></pre>
+<p>Y para correr el codigo solo tenemos que hacer:</p>
+<pre style="background-color:#282c34;">
+<code class="language-bash" data-lang="bash"><span style="color:#e06c75;">cargo</span><span style="color:#abb2bf;"> run
+</span></code></pre>
+<p>Quien dijo que Rust era dificil ???. Saludos</p>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                    
+                    in <a href="https://elsuizo.github.io/categories/article/">article</a>
+                
+                
+                    and tagged
+                    
+                        <a href="https://elsuizo.github.io/tags/rust/">Rust</a>
+                        
+                    
+                
+            </p>
+            
+            
+        </footer>
+    
+</article>
+
+
+    </body>
+
+</html>

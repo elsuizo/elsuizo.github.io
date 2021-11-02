@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+
+      
+          <link rel="stylesheet" href="https://elsuizo.github.io/site.css">
+      
+
+      
+      
+    </head>
+
+    <body class="hack dark main container">
+        
+    
+        
+                
+                    <header>
+                        <nav itemscope itemtype="http://schema.org/SiteNavigationElement">
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;elsuizo.github.io&#x2F;">
+                                <span itemprop="name">Home
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;elsuizo.github.io&#x2F;&#x2F;categories">
+                                <span itemprop="name">Categories
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;elsuizo.github.io&#x2F;&#x2F;tags">
+                                <span itemprop="name">Tags
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;github.com&#x2F;elsuizo">
+                                <span itemprop="name">Martin Noblia github
+                                </span></a>
+                        
+                        </nav>
+                    </header>
+                
+            
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Coleccion de snippets cools de Rust</h1>
+        <span class="muted">
+    <svg style="margin-bottom:-3px" class="i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>5 minute read</span>
+    <svg style="margin-bottom: -3px" class="i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    Published: 2021-11-02
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <h1 id="los-mejores-snippets-de-rust">Los mejores snippets de Rust<a class="zola-anchor" href="#los-mejores-snippets-de-rust" aria-label="Anchor link for: los-mejores-snippets-de-rust">🔗</a></h1>
+<p>Los siguientes snippets de codigo los fui recolectando a lo largo del poco tiempo
+que llevo en el lenguaje. Su orden de aparicion no significa nada en ninguna
+metrica, esto es solo exposicion de arte y elegancia.</p>
+<h2 id="snippets-con-matches">Snippets con <code>matches!</code><a class="zola-anchor" href="#snippets-con-matches" aria-label="Anchor link for: snippets-con-matches">🔗</a></h2>
+<p>El famoso macro <code>matches!</code> en accion:</p>
+<p><a href="https://doc.rust-lang.org/std/macro.matches.html"><code>matches doc</code></a></p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">enum </span><span style="color:#abb2bf;">Foo {
+    Bar(</span><span style="color:#c678dd;">u32</span><span style="color:#abb2bf;">),
+    Baz
+}
+
+</span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">is_bar</span><span style="color:#abb2bf;">(</span><span style="font-style:italic;color:#e06c75;">foo</span><span style="color:#abb2bf;">: Foo) -&gt; </span><span style="color:#c678dd;">bool </span><span style="color:#abb2bf;">{
+    matches!(foo, Foo::Bar(</span><span style="color:#56b6c2;">_</span><span style="color:#abb2bf;">))
+}
+
+</span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">is_bar_greather</span><span style="color:#abb2bf;">(</span><span style="font-style:italic;color:#e06c75;">foo</span><span style="color:#abb2bf;">: Foo, </span><span style="font-style:italic;color:#e06c75;">thresold</span><span style="color:#abb2bf;">: </span><span style="color:#c678dd;">u32</span><span style="color:#abb2bf;">) -&gt; </span><span style="color:#c678dd;">bool </span><span style="color:#abb2bf;">{
+    matches!(foo, Foo::Bar(x) </span><span style="color:#c678dd;">if</span><span style="color:#abb2bf;"> x </span><span style="color:#56b6c2;">&gt;</span><span style="color:#abb2bf;"> thresold)
+}
+
+</span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">main</span><span style="color:#abb2bf;">() {
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> m </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">Foo::Bar(</span><span style="color:#d19a66;">0</span><span style="color:#abb2bf;">);
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> m2 </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">Foo::Bar(</span><span style="color:#d19a66;">10</span><span style="color:#abb2bf;">);
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> m3 </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">Foo::Baz;
+    println!(</span><span style="color:#98c379;">&quot;is: </span><span style="color:#d19a66;">{:}</span><span style="color:#98c379;">&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#56b6c2;">is_bar</span><span style="color:#abb2bf;">(m));
+    println!(</span><span style="color:#98c379;">&quot;is: </span><span style="color:#d19a66;">{:}</span><span style="color:#98c379;">&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#56b6c2;">is_bar</span><span style="color:#abb2bf;">(m3));
+    println!(</span><span style="color:#98c379;">&quot;is: </span><span style="color:#d19a66;">{:}</span><span style="color:#98c379;">&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#56b6c2;">is_bar_greather</span><span style="color:#abb2bf;">(m2, </span><span style="color:#d19a66;">1</span><span style="color:#abb2bf;">));
+}
+</span></code></pre><h2 id="snippets-con-match">Snippets con <code>match</code><a class="zola-anchor" href="#snippets-con-match" aria-label="Anchor link for: snippets-con-match">🔗</a></h2>
+<p>El famoso <code>match</code> de Rust. Es una de las construcciones mas potentes del lenguaje
+en mi humilde opinion. Lo podriamos catalogar como un <code>switch</code> pero mucho mas
+poderoso.</p>
+<p>El primer ejemplo es una implementacion del <code>trait</code> <code>TryFrom</code> para una <code>struct</code></p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">struct </span><span style="color:#abb2bf;">Color {
+   </span><span style="color:#e06c75;">red</span><span style="color:#abb2bf;">: </span><span style="color:#c678dd;">u8</span><span style="color:#abb2bf;">,
+   </span><span style="color:#e06c75;">green</span><span style="color:#abb2bf;">: </span><span style="color:#c678dd;">u8</span><span style="color:#abb2bf;">,
+   </span><span style="color:#e06c75;">blue</span><span style="color:#abb2bf;">: </span><span style="color:#c678dd;">u8</span><span style="color:#abb2bf;">,
+}
+</span></code></pre>
+<p>Entonces con el siguiente codigo implementamos <code>TryFrom</code> para una <code>tupla</code> <code>(i16, i16, i16)</code></p>
+<p>La magia de esto es que en el lado del <code>pattern</code> que es siempre a la izquierda
+de cada rama del <code>match</code> tenemos un alias el cual verifica si el valor esta
+en un cierto rango (en este caso queremos que el valor entre en un <code>u8</code> por eso
+el rango es <code>0..=255</code>)</p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">impl </span><span style="color:#abb2bf;">TryFrom&lt;(</span><span style="color:#c678dd;">i16</span><span style="color:#abb2bf;">, </span><span style="color:#c678dd;">i16</span><span style="color:#abb2bf;">, </span><span style="color:#c678dd;">i16</span><span style="color:#abb2bf;">)&gt; </span><span style="color:#c678dd;">for </span><span style="color:#abb2bf;">Color {
+    </span><span style="color:#c678dd;">type </span><span style="color:#56b6c2;">Error = </span><span style="color:#abb2bf;">Box&lt;dyn error::Error&gt;;
+    </span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">try_from</span><span style="color:#abb2bf;">(</span><span style="font-style:italic;color:#e06c75;">tuple</span><span style="color:#abb2bf;">: (</span><span style="font-style:italic;color:#e06c75;">i16</span><span style="color:#abb2bf;">, </span><span style="font-style:italic;color:#e06c75;">i16</span><span style="color:#abb2bf;">, </span><span style="font-style:italic;color:#e06c75;">i16</span><span style="color:#abb2bf;">)) -&gt; Result&lt;</span><span style="color:#c678dd;">Self</span><span style="color:#abb2bf;">, </span><span style="color:#c678dd;">Self::</span><span style="color:#abb2bf;">Error&gt; {
+        </span><span style="color:#c678dd;">match</span><span style="color:#abb2bf;"> tuple {
+            (r </span><span style="color:#56b6c2;">@ </span><span style="color:#d19a66;">0</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">255</span><span style="color:#abb2bf;">, g </span><span style="color:#56b6c2;">@ </span><span style="color:#d19a66;">0</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">255</span><span style="color:#abb2bf;">, b </span><span style="color:#56b6c2;">@ </span><span style="color:#d19a66;">0</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">255</span><span style="color:#abb2bf;">) </span><span style="color:#56b6c2;">=&gt; </span><span style="color:#abb2bf;">Ok(Color {
+                red: r </span><span style="color:#56b6c2;">as </span><span style="color:#c678dd;">u8</span><span style="color:#abb2bf;">,
+                green: g </span><span style="color:#56b6c2;">as </span><span style="color:#c678dd;">u8</span><span style="color:#abb2bf;">,
+                blue: b </span><span style="color:#56b6c2;">as </span><span style="color:#c678dd;">u8</span><span style="color:#abb2bf;">,
+            }),
+            </span><span style="color:#56b6c2;">_ =&gt; </span><span style="color:#abb2bf;">Err(</span><span style="color:#98c379;">&quot;rgb must be 0~255&quot;</span><span style="color:#abb2bf;">.</span><span style="color:#56b6c2;">into</span><span style="color:#abb2bf;">()),
+        }
+    }
+}
+</span></code></pre>
+<p>Podemos utilizar un <code>match</code> en la definicion de una variable ya que en el lenguaje
+podemos usar cualquier expresion para ello. En el siguiente ejemplo usamos un <code>match</code>
+para asignar los valores de cada color en una funcion que calcula el falso color
+a una imagen:</p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#7f848e;">/// False color of an image
+</span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">false_color</span><span style="color:#abb2bf;">(</span><span style="font-style:italic;color:#e06c75;">pixel</span><span style="color:#abb2bf;">: image::Rgb&lt;</span><span style="color:#c678dd;">u8</span><span style="color:#abb2bf;">&gt;) -&gt; image::Rgb&lt;</span><span style="color:#c678dd;">u8</span><span style="color:#abb2bf;">&gt; {
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> m </span><span style="color:#56b6c2;">= </span><span style="color:#d19a66;">255.0 </span><span style="color:#56b6c2;">/ </span><span style="color:#d19a66;">43.0</span><span style="color:#abb2bf;">;
+
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> r </span><span style="color:#56b6c2;">= </span><span style="color:#c678dd;">match</span><span style="color:#abb2bf;"> pixel[</span><span style="color:#d19a66;">0</span><span style="color:#abb2bf;">] {
+        </span><span style="color:#d19a66;">0</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">43            </span><span style="color:#56b6c2;">=&gt; </span><span style="color:#d19a66;">255.0</span><span style="color:#abb2bf;">,
+        value </span><span style="color:#56b6c2;">@ </span><span style="color:#d19a66;">44</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">86   </span><span style="color:#56b6c2;">=&gt; -</span><span style="color:#abb2bf;">m </span><span style="color:#56b6c2;">* </span><span style="color:#abb2bf;">(value </span><span style="color:#56b6c2;">as </span><span style="color:#c678dd;">f32 </span><span style="color:#56b6c2;">- </span><span style="color:#d19a66;">86.0</span><span style="color:#abb2bf;">),
+        </span><span style="color:#d19a66;">87</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">172          </span><span style="color:#56b6c2;">=&gt; </span><span style="color:#d19a66;">0.0</span><span style="color:#abb2bf;">,
+        value </span><span style="color:#56b6c2;">@ </span><span style="color:#d19a66;">173</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">215 </span><span style="color:#56b6c2;">=&gt;</span><span style="color:#abb2bf;"> m </span><span style="color:#56b6c2;">* </span><span style="color:#abb2bf;">(value </span><span style="color:#56b6c2;">as </span><span style="color:#c678dd;">f32 </span><span style="color:#56b6c2;">- </span><span style="color:#d19a66;">173.0</span><span style="color:#abb2bf;">),
+        </span><span style="color:#d19a66;">216</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">MAX         </span><span style="color:#56b6c2;">=&gt; </span><span style="color:#d19a66;">255.0</span><span style="color:#abb2bf;">,
+    };
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> g </span><span style="color:#56b6c2;">= </span><span style="color:#c678dd;">match</span><span style="color:#abb2bf;"> pixel[</span><span style="color:#d19a66;">1</span><span style="color:#abb2bf;">] {
+        value </span><span style="color:#56b6c2;">@ </span><span style="color:#d19a66;">0</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">43    </span><span style="color:#56b6c2;">=&gt;</span><span style="color:#abb2bf;"> m </span><span style="color:#56b6c2;">*</span><span style="color:#abb2bf;"> value </span><span style="color:#56b6c2;">as </span><span style="color:#c678dd;">f32</span><span style="color:#abb2bf;">,
+        </span><span style="color:#d19a66;">44</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">128          </span><span style="color:#56b6c2;">=&gt; </span><span style="color:#d19a66;">255.0</span><span style="color:#abb2bf;">,
+        value </span><span style="color:#56b6c2;">@ </span><span style="color:#d19a66;">129</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">172 </span><span style="color:#56b6c2;">=&gt; -</span><span style="color:#abb2bf;">m </span><span style="color:#56b6c2;">* </span><span style="color:#abb2bf;">(value </span><span style="color:#56b6c2;">as </span><span style="color:#c678dd;">f32 </span><span style="color:#56b6c2;">- </span><span style="color:#d19a66;">172.0</span><span style="color:#abb2bf;">),
+        </span><span style="color:#d19a66;">173</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">MAX         </span><span style="color:#56b6c2;">=&gt; </span><span style="color:#d19a66;">0.0</span><span style="color:#abb2bf;">,
+    };
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> b </span><span style="color:#56b6c2;">= </span><span style="color:#c678dd;">match</span><span style="color:#abb2bf;"> pixel[</span><span style="color:#d19a66;">2</span><span style="color:#abb2bf;">] {
+        </span><span style="color:#d19a66;">0</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">86            </span><span style="color:#56b6c2;">=&gt; </span><span style="color:#d19a66;">0.0</span><span style="color:#abb2bf;">,
+        value </span><span style="color:#56b6c2;">@ </span><span style="color:#d19a66;">87</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">129  </span><span style="color:#56b6c2;">=&gt;</span><span style="color:#abb2bf;"> m </span><span style="color:#56b6c2;">* </span><span style="color:#abb2bf;">(value </span><span style="color:#56b6c2;">as </span><span style="color:#c678dd;">f32 </span><span style="color:#56b6c2;">- </span><span style="color:#d19a66;">87.0</span><span style="color:#abb2bf;">),
+        </span><span style="color:#d19a66;">130</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">213         </span><span style="color:#56b6c2;">=&gt; </span><span style="color:#d19a66;">255.0</span><span style="color:#abb2bf;">,
+        value </span><span style="color:#56b6c2;">@ </span><span style="color:#d19a66;">214</span><span style="color:#56b6c2;">..=</span><span style="color:#d19a66;">MAX </span><span style="color:#56b6c2;">=&gt; -</span><span style="color:#abb2bf;">m </span><span style="color:#56b6c2;">* </span><span style="color:#abb2bf;">(value </span><span style="color:#56b6c2;">as </span><span style="color:#c678dd;">f32 </span><span style="color:#56b6c2;">- </span><span style="color:#d19a66;">255.0</span><span style="color:#abb2bf;">),
+    };
+
+    image::Rgb([r </span><span style="color:#56b6c2;">as </span><span style="color:#c678dd;">u8</span><span style="color:#abb2bf;">, g </span><span style="color:#56b6c2;">as </span><span style="color:#c678dd;">u8</span><span style="color:#abb2bf;">, b </span><span style="color:#56b6c2;">as </span><span style="color:#c678dd;">u8</span><span style="color:#abb2bf;">])
+}
+</span></code></pre><h2 id="snippets-de-notacion">Snippets de notacion<a class="zola-anchor" href="#snippets-de-notacion" aria-label="Anchor link for: snippets-de-notacion">🔗</a></h2>
+<p>En Rust podemos desestructurar casi cualquier expresion para nuestra conveniencia
+por ejemplo queremos hacer una funcion que tome un array de tres elementos
+y que sume el primer y el ultimo elemento:</p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">fn </span><span style="color:#61afef;">add_first_last</span><span style="color:#abb2bf;">([x, </span><span style="color:#56b6c2;">_</span><span style="color:#abb2bf;">, y]: [</span><span style="color:#c678dd;">i32</span><span style="color:#abb2bf;">; 3]) -&gt; </span><span style="color:#c678dd;">i32 </span><span style="color:#abb2bf;">{
+    x </span><span style="color:#56b6c2;">+</span><span style="color:#abb2bf;"> y
+}
+</span></code></pre>
+<p>Supongamos que tenemos la siguiente <code>struct Foo</code>, tenemos un array de <code>Foo</code>s y
+queremos iterar solo sobre los elementos <code>a</code> de cada <code>Foo</code></p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">struct </span><span style="color:#abb2bf;">Foo {
+    </span><span style="color:#e06c75;">a</span><span style="color:#abb2bf;">: </span><span style="color:#c678dd;">u32</span><span style="color:#abb2bf;">,
+    </span><span style="color:#e06c75;">b</span><span style="color:#abb2bf;">: </span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">&#39;static </span><span style="color:#c678dd;">str</span><span style="color:#abb2bf;">,
+    </span><span style="color:#e06c75;">c</span><span style="color:#abb2bf;">: </span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">&#39;static </span><span style="color:#c678dd;">str
+</span><span style="color:#abb2bf;">}
+
+</span><span style="font-style:italic;color:#7f848e;">// constructor de Foo
+</span><span style="color:#c678dd;">impl </span><span style="color:#abb2bf;">Foo {
+    </span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">new</span><span style="color:#abb2bf;">(</span><span style="font-style:italic;color:#e06c75;">a</span><span style="color:#abb2bf;">: </span><span style="color:#c678dd;">u32</span><span style="color:#abb2bf;">, </span><span style="font-style:italic;color:#e06c75;">b</span><span style="color:#abb2bf;">: </span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">&#39;static </span><span style="color:#c678dd;">str</span><span style="color:#abb2bf;">, </span><span style="font-style:italic;color:#e06c75;">c</span><span style="color:#abb2bf;">: </span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">&#39;static </span><span style="color:#c678dd;">str</span><span style="color:#abb2bf;">) -&gt; </span><span style="color:#c678dd;">Self </span><span style="color:#abb2bf;">{
+        </span><span style="color:#c678dd;">Self </span><span style="color:#abb2bf;">{a, b, c}
+    }
+}
+
+</span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">main</span><span style="color:#abb2bf;">() {
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> data </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">[Foo::new(</span><span style="color:#d19a66;">3</span><span style="color:#abb2bf;">, </span><span style="color:#98c379;">&quot;one&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#98c379;">&quot;two&quot;</span><span style="color:#abb2bf;">), Foo::new(</span><span style="color:#d19a66;">7</span><span style="color:#abb2bf;">, </span><span style="color:#98c379;">&quot;two&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#98c379;">&quot;tree&quot;</span><span style="color:#abb2bf;">), Foo::new(</span><span style="color:#d19a66;">37</span><span style="color:#abb2bf;">, </span><span style="color:#98c379;">&quot;l&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#98c379;">&quot;pi&quot;</span><span style="color:#abb2bf;">)];
+
+    </span><span style="color:#c678dd;">for</span><span style="color:#abb2bf;"> Foo{a, </span><span style="color:#56b6c2;">..</span><span style="color:#abb2bf;">} </span><span style="color:#56b6c2;">in</span><span style="color:#abb2bf;"> data {
+        println!(</span><span style="color:#98c379;">&quot;a: </span><span style="color:#d19a66;">{}</span><span style="color:#98c379;">&quot;</span><span style="color:#abb2bf;">, a);
+    }
+}
+</span></code></pre>
+<p>El siguiente snippet lo vi en el siguiente blog(que les recomiendo)</p>
+<p><a href="https://adventures.michaelfbryan.com/posts/daily/slice-patterns/?utm_source=user-forums&amp;utm_medium=social&amp;utm_campaign=daily-rust-slice-patterns"><code>blog</code></a></p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">fn </span><span style="color:#61afef;">word_is_palindrome</span><span style="color:#abb2bf;">(</span><span style="font-style:italic;color:#e06c75;">word</span><span style="color:#abb2bf;">: </span><span style="color:#56b6c2;">&amp;</span><span style="color:#c678dd;">str</span><span style="color:#abb2bf;">) -&gt; </span><span style="color:#c678dd;">bool </span><span style="color:#abb2bf;">{
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> letters: Vec&lt;</span><span style="color:#56b6c2;">_</span><span style="color:#abb2bf;">&gt; </span><span style="color:#56b6c2;">=</span><span style="color:#abb2bf;"> word.</span><span style="color:#56b6c2;">chars</span><span style="color:#abb2bf;">().</span><span style="color:#56b6c2;">collect</span><span style="color:#abb2bf;">();
+
+    </span><span style="color:#56b6c2;">is_palindrome</span><span style="color:#abb2bf;">(</span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">letters)
+}
+
+</span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">is_palindrome</span><span style="color:#abb2bf;">(</span><span style="font-style:italic;color:#e06c75;">items</span><span style="color:#abb2bf;">: </span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">[</span><span style="color:#c678dd;">char</span><span style="color:#abb2bf;">]) -&gt; </span><span style="color:#c678dd;">bool </span><span style="color:#abb2bf;">{
+    </span><span style="color:#c678dd;">match</span><span style="color:#abb2bf;"> items {
+        [first, middle </span><span style="color:#56b6c2;">@ ..</span><span style="color:#abb2bf;">, last] </span><span style="color:#56b6c2;">=&gt;</span><span style="color:#abb2bf;"> first </span><span style="color:#56b6c2;">==</span><span style="color:#abb2bf;"> last </span><span style="color:#56b6c2;">&amp;&amp; is_palindrome</span><span style="color:#abb2bf;">(middle),
+        [] </span><span style="color:#56b6c2;">| </span><span style="color:#abb2bf;">[</span><span style="color:#56b6c2;">_</span><span style="color:#abb2bf;">] </span><span style="color:#56b6c2;">=&gt; </span><span style="color:#d19a66;">true</span><span style="color:#abb2bf;">,
+    }
+}
+
+</span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">main</span><span style="color:#abb2bf;">() {
+    println!(</span><span style="color:#98c379;">&quot;is palindrome: </span><span style="color:#d19a66;">{:?}</span><span style="color:#98c379;">&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#56b6c2;">word_is_palindrome</span><span style="color:#abb2bf;">(</span><span style="color:#98c379;">&quot;abbbba&quot;</span><span style="color:#abb2bf;">));
+}
+</span></code></pre>
+<p>Utiliza patrones de &quot;matcheo&quot; y recursividad, notemos que cuando hacemos esto
+sobre <code>slices</code> debemos tener en cuenta los casos de <code>slice</code> vacio <code>[]</code> y cualquier
+otro valor con <code>[_]</code></p>
+<h2 id="snippets-con-iteradores">Snippets con iteradores<a class="zola-anchor" href="#snippets-con-iteradores" aria-label="Anchor link for: snippets-con-iteradores">🔗</a></h2>
+<p>Rust utiliza iteradores como elemento para iterar sobre colecciones de
+elementos esto hace que por ejemplo el compilador sepa de antemano cuando debe
+terminar la iteracion y asi no tener que realizar el chequeo en cada una de las
+mismas como si pasa por ejemplo en <code>C</code></p>
+<p><code>for(int i=0; i &lt; 10; i++)</code></p>
+<p>Por ejemplo supongamos que queremos implementar el producto punto para dos
+vectores o arrays de cualquier <code>length</code></p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">pub fn </span><span style="color:#61afef;">dot</span><span style="color:#abb2bf;">(</span><span style="font-style:italic;color:#e06c75;">slice1</span><span style="color:#abb2bf;">: </span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">[</span><span style="color:#c678dd;">f32</span><span style="color:#abb2bf;">], </span><span style="font-style:italic;color:#e06c75;">slice2</span><span style="color:#abb2bf;">: </span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">[</span><span style="color:#c678dd;">f32</span><span style="color:#abb2bf;">]) -&gt; </span><span style="color:#c678dd;">f32 </span><span style="color:#abb2bf;">{
+    slice1.</span><span style="color:#56b6c2;">iter</span><span style="color:#abb2bf;">().</span><span style="color:#56b6c2;">zip</span><span style="color:#abb2bf;">(slice2).</span><span style="color:#56b6c2;">map</span><span style="color:#abb2bf;">(|(&amp;</span><span style="font-style:italic;color:#e06c75;">a</span><span style="color:#abb2bf;">, &amp;</span><span style="font-style:italic;color:#e06c75;">b</span><span style="color:#abb2bf;">)| a </span><span style="color:#56b6c2;">*</span><span style="color:#abb2bf;"> b).</span><span style="color:#56b6c2;">sum</span><span style="color:#abb2bf;">()
+}
+
+</span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">main</span><span style="color:#abb2bf;">() {
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> a </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">[</span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">3.0</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">4.0</span><span style="color:#abb2bf;">];
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> b </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">[</span><span style="color:#d19a66;">4.0</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">2.0</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">7.0</span><span style="color:#abb2bf;">];
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> result </span><span style="color:#56b6c2;">= dot</span><span style="color:#abb2bf;">(</span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">a, </span><span style="color:#56b6c2;">&amp;</span><span style="color:#abb2bf;">b);
+    println!(</span><span style="color:#98c379;">&quot;result: </span><span style="color:#d19a66;">{}</span><span style="color:#98c379;">&quot;</span><span style="color:#abb2bf;">, result);
+}
+</span></code></pre><h2 id="snippets-con-alias">Snippets con alias<a class="zola-anchor" href="#snippets-con-alias" aria-label="Anchor link for: snippets-con-alias">🔗</a></h2>
+<p>Desde la version 1.56 podemos combinar &quot;bindings&quot; <code>@</code> con &quot;bindings&quot; patrones o
+sea que podemos darle un nombre a un type y a cierta parte de ello por ejemplo:</p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">fn </span><span style="color:#61afef;">main</span><span style="color:#abb2bf;">() {
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> array </span><span style="color:#56b6c2;">@ </span><span style="color:#abb2bf;">[first_element, </span><span style="color:#56b6c2;">..</span><span style="color:#abb2bf;">, last_element] </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">[</span><span style="color:#d19a66;">1</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">2</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">3</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">4</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">5</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">6</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">7</span><span style="color:#abb2bf;">];
+    println!(</span><span style="color:#98c379;">&quot;array: </span><span style="color:#d19a66;">{:?}</span><span style="color:#98c379;">&quot;</span><span style="color:#abb2bf;">, array);
+    println!(</span><span style="color:#98c379;">&quot;first_element: </span><span style="color:#d19a66;">{}</span><span style="color:#98c379;">&quot;</span><span style="color:#abb2bf;">, first_element);
+    println!(</span><span style="color:#98c379;">&quot;last_element: </span><span style="color:#d19a66;">{}</span><span style="color:#98c379;">&quot;</span><span style="color:#abb2bf;">, last_element);
+}
+</span></code></pre>
+<p>Donde le damos un nombre al array a su primer elemento y a su ultimo elemento
+todo en la misma linea de codigo</p>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                    
+                    in <a href="https://elsuizo.github.io/categories/article/">article</a>
+                
+                
+                    and tagged
+                    
+                        <a href="https://elsuizo.github.io/tags/rust/">Rust</a>
+                        
+                    
+                
+            </p>
+            
+            
+        </footer>
+    
+</article>
+
+
+    </body>
+
+</html>

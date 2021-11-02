@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+      <meta http-equiv="X-UA-Compatible" content="IE=edge">
+      <meta http-equiv="content-type" content="text/html; charset=utf-8">
+
+      <!-- Enable responsiveness on mobile devices-->
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+
+      <title></title>
+
+      
+
+      
+          <link rel="stylesheet" href="https://elsuizo.github.io/site.css">
+      
+
+      
+      
+    </head>
+
+    <body class="hack dark main container">
+        
+    
+        
+                
+                    <header>
+                        <nav itemscope itemtype="http://schema.org/SiteNavigationElement">
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;elsuizo.github.io&#x2F;">
+                                <span itemprop="name">Home
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;elsuizo.github.io&#x2F;&#x2F;categories">
+                                <span itemprop="name">Categories
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;elsuizo.github.io&#x2F;&#x2F;tags">
+                                <span itemprop="name">Tags
+                                </span></a>
+                        
+                            <a itemprop="url"
+                               class=""
+                               href="https:&#x2F;&#x2F;github.com&#x2F;elsuizo">
+                                <span itemprop="name">Martin Noblia github
+                                </span></a>
+                        
+                        </nav>
+                    </header>
+                
+            
+    
+
+<article itemscope itemtype="http://schema.org/BlogPosting">
+    <header>
+        <h1 itemprop="headline">Hola mundo con ROS y Rust</h1>
+        <span class="muted">
+    <svg style="margin-bottom:-3px" class="i-clock" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <circle cx="16" cy="16" r="14"/>
+        <path d="M16 8 L16 16 20 20"/>
+    </svg>
+    <span>3 minute read</span>
+    <svg style="margin-bottom: -3px" class="i-edit" viewBox="0 0 32 32"
+         width="16" height="16" fill="none" stroke="currentcolor"
+         stroke-linecap="round" stroke-linejoin="round" stroke-width="6.25%">
+        <path d="M30 7 L25 2 5 22 3 29 10 27 Z M21 6 L26 11 Z M5 22 L10 27 Z"/>
+    </svg>
+
+    Published: 2021-07-25
+</span>
+    </header>
+    <div itemprop="articleBody">
+      <h1 id="como-empezar-con-ros-y-rust">Como empezar con ROS y Rust<a class="zola-anchor" href="#como-empezar-con-ros-y-rust" aria-label="Anchor link for: como-empezar-con-ros-y-rust">🔗</a></h1>
+<p>Si comenzar con ROS ya tiene algunas dificultades porque como se dice
+vulgarmente tienen que estar todos los patitos en fila(<code>CMakes</code>, <code>package.xml</code>,
+dependencias, workpace de catkin, ...etc) entonces comenzar con ROS y Rust aun
+mas porque ni bien empezas te preguntas pero como integro mi nodo de Rust(hecho
+con <code>cargo</code>) a un projecto de catkin(que usa <code>CMake</code>)???</p>
+<p>Bueno no te preocupes hice una herramienta:</p>
+<p><a href="https://crates.io/crates/ros-project-generator"><code>ros-project-generator</code></a></p>
+<p>que te genera los nodos de ROS hechos
+con Rust(hecho con <code>cargo</code>) y que se comporta como un nodo &quot;normal&quot; de otro
+lenguaje como <code>python</code> o <code>Cpp</code>, osea genera los nodos y todos los archivos que
+se necesitan para que compilen con <code>CMake</code></p>
+<p>La herramienta se instala como un <em>subcommand</em> de <code>cargo</code> haciendo simplemente:</p>
+<p><code>cargo install ros-project-generator</code></p>
+<p>Una vez instalado solo necesitamos un archivo de configuracion <code>config.yaml</code> en
+nuestro <em>workspace</em> de <code>catkin</code> como este:</p>
+<pre style="background-color:#282c34;">
+<code class="language-yaml" data-lang="yaml"><span style="color:#7f848e;"># define a name
+</span><span style="color:#e06c75;">project_name</span><span style="color:#abb2bf;">: </span><span style="color:#98c379;">&quot;navigation-robot&quot;
+
+</span><span style="color:#7f848e;"># define a version
+</span><span style="color:#e06c75;">version</span><span style="color:#abb2bf;">: </span><span style="color:#d19a66;">0.0.1
+
+</span><span style="color:#7f848e;"># define the packages names
+</span><span style="color:#e06c75;">nodes</span><span style="color:#abb2bf;">:
+   - </span><span style="color:#98c379;">listener
+   </span><span style="color:#abb2bf;">- </span><span style="color:#98c379;">talker
+</span></code></pre>
+<p>Donde se definen el nombre del conjunto de nodos(<code>project_name</code>), la version y
+la lista de nodos que queremos crear. Luego solo hacemos(siempre en la carpeta
+donde esta el archivo de configuracion):</p>
+<p><code>cargo ros-project-generator</code></p>
+<p>Si todo salio bien vamos a obtener un mensaje como:</p>
+<pre style="background-color:#282c34;">
+<code class="language-txt" data-lang="txt"><span style="color:#abb2bf;">navigation-robot project generated!!!
+</span></code></pre>
+<p>Ahora que tenemos generados los nodos, deberian aparecer dentro de la carpeta
+<code>src</code> en este caso como generamos dos nodos nos deberian aparecer <code>listener</code> y
+<code>talker</code></p>
+<p>Ahora para completar este <code>hola mundo</code> de ROS deberiamos hacer que el nodo <code>talker</code>
+publique &quot;Hola mundo&quot; en un topic que le asignemos por ejemplo <code>&quot;chatter&quot;</code></p>
+<p>Para ello necesitamos las siguientes lineas de codigo:</p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">use</span><span style="color:#abb2bf;"> env_logger;
+</span><span style="color:#c678dd;">use</span><span style="color:#abb2bf;"> rosrust;
+
+</span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">main</span><span style="color:#abb2bf;">() {
+    env_logger::init();
+
+    </span><span style="font-style:italic;color:#7f848e;">// Initialize node
+    </span><span style="color:#abb2bf;">rosrust::init(</span><span style="color:#98c379;">&quot;talker&quot;</span><span style="color:#abb2bf;">);
+
+    </span><span style="font-style:italic;color:#7f848e;">// Create publisher
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> chatter_pub </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">rosrust::publish(</span><span style="color:#98c379;">&quot;chatter&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">2</span><span style="color:#abb2bf;">).</span><span style="color:#56b6c2;">unwrap</span><span style="color:#abb2bf;">();
+
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> log_names </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">rosrust::param(</span><span style="color:#98c379;">&quot;~log_names&quot;</span><span style="color:#abb2bf;">).</span><span style="color:#56b6c2;">unwrap</span><span style="color:#abb2bf;">().</span><span style="color:#56b6c2;">get</span><span style="color:#abb2bf;">().</span><span style="color:#56b6c2;">unwrap_or</span><span style="color:#abb2bf;">(</span><span style="color:#d19a66;">false</span><span style="color:#abb2bf;">);
+
+    </span><span style="color:#c678dd;">let mut</span><span style="color:#abb2bf;"> count </span><span style="color:#56b6c2;">= </span><span style="color:#d19a66;">0</span><span style="color:#abb2bf;">;
+
+    </span><span style="font-style:italic;color:#7f848e;">// Create object that maintains 10Hz between sleep requests
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> rate </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">rosrust::rate(</span><span style="color:#d19a66;">10.0</span><span style="color:#abb2bf;">);
+
+    </span><span style="font-style:italic;color:#7f848e;">// Breaks when a shutdown signal is sent
+    </span><span style="color:#c678dd;">while </span><span style="color:#abb2bf;">rosrust::is_ok() {
+        </span><span style="font-style:italic;color:#7f848e;">// Create string message
+        </span><span style="color:#c678dd;">let mut</span><span style="color:#abb2bf;"> msg </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">rosrust_msg::std_msgs::String::default();
+        msg.data </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">format!(</span><span style="color:#98c379;">&quot;hello world from rosrust </span><span style="color:#d19a66;">{}</span><span style="color:#98c379;">&quot;</span><span style="color:#abb2bf;">, count);
+
+        </span><span style="font-style:italic;color:#7f848e;">// Log event
+        </span><span style="color:#abb2bf;">rosrust::ros_info</span><span style="color:#56b6c2;">!</span><span style="color:#abb2bf;">(</span><span style="color:#98c379;">&quot;Publishing: {}&quot;</span><span style="color:#abb2bf;">, msg.data);
+
+        </span><span style="font-style:italic;color:#7f848e;">// Send string message to topic via publisher
+</span><span style="color:#abb2bf;">        chatter_pub.</span><span style="color:#56b6c2;">send</span><span style="color:#abb2bf;">(msg).</span><span style="color:#56b6c2;">unwrap</span><span style="color:#abb2bf;">();
+
+        </span><span style="color:#c678dd;">if</span><span style="color:#abb2bf;"> log_names {
+            rosrust::ros_info</span><span style="color:#56b6c2;">!</span><span style="color:#abb2bf;">(</span><span style="color:#98c379;">&quot;Subscriber names: {:?}&quot;</span><span style="color:#abb2bf;">, chatter_pub.</span><span style="color:#56b6c2;">subscriber_names</span><span style="color:#abb2bf;">());
+        }
+
+        </span><span style="font-style:italic;color:#7f848e;">// Sleep to maintain 10Hz rate
+</span><span style="color:#abb2bf;">        rate.</span><span style="color:#56b6c2;">sleep</span><span style="color:#abb2bf;">();
+
+        count </span><span style="color:#56b6c2;">+= </span><span style="color:#d19a66;">1</span><span style="color:#abb2bf;">;
+    }
+}
+</span></code></pre>
+<p>Luego para el nodo <code>listener</code> debemos hacer que el mismo se subscriba al topic
+que esta publicando el nodo anterior y asi completar este &quot;Hola mundo&quot;</p>
+<pre style="background-color:#282c34;">
+<code class="language-rust" data-lang="rust"><span style="color:#c678dd;">use</span><span style="color:#abb2bf;"> env_logger;
+</span><span style="color:#c678dd;">use</span><span style="color:#abb2bf;"> rosrust;
+
+</span><span style="color:#c678dd;">fn </span><span style="color:#61afef;">main</span><span style="color:#abb2bf;">() {
+    env_logger::init();
+
+    </span><span style="font-style:italic;color:#7f848e;">// Initialize node
+    </span><span style="color:#abb2bf;">rosrust::init(</span><span style="color:#98c379;">&quot;listener&quot;</span><span style="color:#abb2bf;">);
+
+    </span><span style="font-style:italic;color:#7f848e;">// Create subscriber
+    // The subscriber is stopped when the returned object is destroyed
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> subscriber_info </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">rosrust::subscribe(</span><span style="color:#98c379;">&quot;chatter&quot;</span><span style="color:#abb2bf;">, </span><span style="color:#d19a66;">2</span><span style="color:#abb2bf;">, |</span><span style="font-style:italic;color:#e06c75;">v</span><span style="color:#abb2bf;">: rosrust_msg::std_msgs::String| {
+        </span><span style="font-style:italic;color:#7f848e;">// Callback for handling received messages
+        </span><span style="color:#abb2bf;">rosrust::ros_info</span><span style="color:#56b6c2;">!</span><span style="color:#abb2bf;">(</span><span style="color:#98c379;">&quot;Received: {}&quot;</span><span style="color:#abb2bf;">, v.data);
+    })
+    .</span><span style="color:#56b6c2;">unwrap</span><span style="color:#abb2bf;">();
+
+    </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> log_names </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">rosrust::param(</span><span style="color:#98c379;">&quot;~log_names&quot;</span><span style="color:#abb2bf;">).</span><span style="color:#56b6c2;">unwrap</span><span style="color:#abb2bf;">().</span><span style="color:#56b6c2;">get</span><span style="color:#abb2bf;">().</span><span style="color:#56b6c2;">unwrap_or</span><span style="color:#abb2bf;">(</span><span style="color:#d19a66;">false</span><span style="color:#abb2bf;">);
+
+    </span><span style="color:#c678dd;">if</span><span style="color:#abb2bf;"> log_names {
+        </span><span style="color:#c678dd;">let</span><span style="color:#abb2bf;"> rate </span><span style="color:#56b6c2;">= </span><span style="color:#abb2bf;">rosrust::rate(</span><span style="color:#d19a66;">1.0</span><span style="color:#abb2bf;">);
+        </span><span style="color:#c678dd;">while </span><span style="color:#abb2bf;">rosrust::is_ok() {
+            rosrust::ros_info</span><span style="color:#56b6c2;">!</span><span style="color:#abb2bf;">(</span><span style="color:#98c379;">&quot;Publisher uris: {:?}&quot;</span><span style="color:#abb2bf;">, subscriber_info.</span><span style="color:#56b6c2;">publisher_uris</span><span style="color:#abb2bf;">());
+            rate.</span><span style="color:#56b6c2;">sleep</span><span style="color:#abb2bf;">();
+        }
+    } </span><span style="color:#c678dd;">else </span><span style="color:#abb2bf;">{
+        </span><span style="font-style:italic;color:#7f848e;">// Block the thread until a shutdown signal is received
+        </span><span style="color:#abb2bf;">rosrust::spin();
+    }
+}
+</span></code></pre>
+<p>Si todo salio bien vamos a poder compilar nuestros nodos con el comando de siempre
+que es(asumiendo que estamos usando <code>catkin</code>)</p>
+<pre style="background-color:#282c34;">
+<code class="language-bash" data-lang="bash"><span style="color:#e06c75;">catkin_make
+</span></code></pre>
+<p>Si todo ha compilado sin errores tenemos ahora entonces los ejecutables de cada
+uno de los nodos disponibles para que podamos ejecutarlos, osea que podemos hacer</p>
+<pre style="background-color:#282c34;">
+<code class="language-bash" data-lang="bash"><span style="color:#e06c75;">rosrun</span><span style="color:#abb2bf;"> listener listener
+</span></code></pre>
+<p>y en otra terminal el otro nodo:</p>
+<pre style="background-color:#282c34;">
+<code class="language-bash" data-lang="bash"><span style="color:#e06c75;">rosrun</span><span style="color:#abb2bf;"> talker talker
+</span></code></pre>
+<p>Para obtener nuestro preciado <code>Hello World!!!</code></p>
+<p class="gif">
+  <img src=".&#x2F;hola_mundo.png"/>
+</p>
+
+    </div>
+
+    
+        <footer>
+            <hr>
+            <p>
+                
+                
+                    
+                    in <a href="https://elsuizo.github.io/categories/article/">article</a>
+                
+                
+                    and tagged
+                    
+                        <a href="https://elsuizo.github.io/tags/rust/">Rust</a>
+                        
+                            
+                                
+                                    and
+                                
+                            
+                        
+                    
+                        <a href="https://elsuizo.github.io/tags/ros/">ROS</a>
+                        
+                            
+                        
+                    
+                
+            </p>
+            
+            
+        </footer>
+    
+</article>
+
+
+    </body>
+
+</html>
